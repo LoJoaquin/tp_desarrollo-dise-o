@@ -1,0 +1,2 @@
+import { UnavailablePage } from "@/shared/ui/unavailable-page";
+export default function CandidateLoginPage() { return <UnavailablePage title="Ingreso de candidato" useCase="Autenticación" reason="El endpoint todavía no autentica. Además, el enum TipoDocumento está vacío, por lo que el frontend no puede ofrecer tipos válidos." nextStep="Implementar la validación de documento y clave, completar los tipos de documento y devolver una sesión o token." />; }

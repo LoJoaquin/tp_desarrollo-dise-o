@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+
+type NavItem = { label: string; href: string; logout?: boolean };
+
+const consultantItems: NavItem[] = [
+  { label: "Inicio consultor", href: "/consultor" },
+  { label: "Gestionar puestos", href: "/puestos" },
+  { label: "Gestionar candidatos", href: "/candidatos" },
+  { label: "Reporte comparativo", href: "/reportes/comparativo" },
+  { label: "Exportar resultados", href: "/exportar-resultados" },
+  { label: "Orden de mérito", href: "/reportes/puestos" },
+  { label: "Gestionar preguntas", href: "/administracion/preguntas" },
+  { label: "Gestionar opciones de respuesta", href: "/administracion/opciones-respuesta" },
+  { label: "Gestionar factores", href: "/administracion/factores" },
+  { label: "Gestionar competencias", href: "/administracion/competencias" },
+  { label: "Gestionar empresas", href: "/administracion/empresas" },
+  { label: "Cerrar sesión", href: "/", logout: true },
+];
+
+const candidateItems: NavItem[] = [
+  { label: "Cuestionario", href: "/cuestionario" },
+  { label: "Cerrar sesión", href: "/", logout: true },
+];
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isCandidateFlow = pathname === "/cuestionario" || pathname.startsWith("/cuestionario/");
+  const consultantPrefixes = ["/consultor", "/candidatos", "/administracion", "/puestos", "/evaluaciones", "/reportes", "/exportar-resultados", "/importar-candidatos"];
+  const isConsultantFlow = consultantPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const navItems = isCandidateFlow ? candidateItems : isConsultantFlow ? consultantItems : [{ label: "Inicio", href: "/" }];
+
+  return <div className="min-h-screen lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
+    <aside className="border-b border-[var(--color-border)] bg-white px-5 py-5 lg:min-h-screen lg:border-b-0 lg:border-r">
+      <Link href="/" className="flex items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-xl bg-[var(--color-brand)] text-lg font-bold text-white">M</span>
+        <span><strong className="block text-lg">miApp</strong><small className="text-slate-500">{isCandidateFlow ? "Perfil candidato" : isConsultantFlow ? "Perfil consultor" : "Seleccionar perfil"}</small></span>
+      </Link>
+      <nav aria-label="Navegación principal" className="mt-7">
+        <ul className="grid gap-1">
+          {navItems.map((item) => {
+            const active = item.href !== "/" && (pathname === item.href || pathname.startsWith(`${item.href}/`));
+            return <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${item.logout ? "mt-5 border-t border-[var(--color-border)] pt-4 text-red-700 hover:bg-red-50" : active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)]" : "text-slate-700 hover:bg-[var(--color-brand-soft)] hover:text-[var(--color-brand)]"}`}
+              >{item.label}</Link>
+            </li>;
+          })}
+        </ul>
+      </nav>
+    </aside>
+    <main className="min-w-0 px-4 py-6 sm:px-7 lg:px-10 lg:py-9">{children}</main>
+  </div>;
+}

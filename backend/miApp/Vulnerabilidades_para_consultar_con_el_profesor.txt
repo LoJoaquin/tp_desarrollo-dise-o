@@ -1,0 +1,165 @@
+REVISION DE VALIDACIONES QUE PUEDEN QUEDAR VIEJAS O COMPETIR
+Fecha: 04/11/2026
+
+Alcance
+-------
+Esta lista se limita a problemas de concurrencia y de tiempo entre una
+comprobación y el uso posterior de esos datos (TOCTOU). No incluye autenticación,
+credenciales ni seguridad general.
+
+Separé los riesgos que aparecen en el código existente de los que hay que
+resolver al completar el caso de uso 25. No modifiqué el código de la aplicación
+ni ejecuté pruebas.
+
+
+1. PUNTAJE CALCULADO CON REGLAS QUE PUEDEN HABER CAMBIADO
+========================================================
+
+Dónde:
+- CompletarCuestionarioService.calcularResultadoYCompletar obtiene las
+  características actuales del puesto al finalizar el cuestionario.
+- CalculoPuntajeHelper.calcularPuntajesPorCompetencia busca la ponderación actual
+  de cada pregunta/detalle mediante PreguntaOpcionPonderacionService.
+- Puesto puede modificar sus competencias y ponderaciones; Pregunta puede
+  modificar su opción de respuesta y sus ponderaciones mientras un cuestionario
+  está en curso.
+
+Escenario:
+1. Se asigna/inicia un cuestionario usando la configuración vigente.
+2. El candidato responde una parte o todas las preguntas.
+3. Mientras responde, alguien cambia la ponderación mínima del puesto o la
+   ponderación de una respuesta.
+4. Al finalizar, el código calcula el resultado con esos valores nuevos.
+
+Consecuencia:
+El candidato podría terminar evaluado con criterios distintos de los que se
+usaron cuando se preparó o presentó su cuestionario. El resultado también podría
+cambiar si se vuelve a calcular un reporte después de editar esos criterios.
+
+Pregunta para el profesor:
+¿La evaluación debe conservar una fotografía/version de preguntas, opciones,
+ponderaciones y características del puesto al crear el cuestionario? ¿O se deben
+usar siempre las reglas vigentes al momento de finalizar?
+
+
+2. VALIDAR QUE EL PUESTO SEA EVALUABLE Y USARLO MÁS TARDE
+========================================================
+
+Estado del caso de uso 25:
+La búsqueda y creación en EvaluarCandidatoService todavía no están implementadas.
+Por lo tanto, este escenario aún no es una falla ejecutable del CU025; es el
+riesgo que debe cubrirse al implementarlo.
+
+Escenario a evitar:
+1. El sistema verifica que cada competencia tenga un factor con al menos dos
+   preguntas y responde que el puesto sirve.
+2. Antes de que el actor confirme o se creen los cuestionarios, se desactiva ese
+   factor/pregunta o se modifica la configuración del puesto.
+3. La creación usa el resultado viejo de la verificación y acepta el puesto con
+   datos que ya no cumplen la regla.
+
+Pregunta para el profesor:
+¿La verificación se vuelve a hacer en la operación final de creación? ¿Debe
+guardarse una versión de la configuración que se validó para que el cuestionario
+y el puntaje usen exactamente esa versión?
+
+
+3. CANDIDATO O PUESTO CAMBIA DE ESTADO DESPUÉS DE LA BÚSQUEDA
+============================================================
+
+Dónde:
+- CandidatoService.buscarCandidatos no filtra estaActivo.
+- PuestoService.buscarPuestos y listarTodos no filtran estaActiva.
+- Candidato y Puesto tienen operaciones de baja que cambian esos estados.
+- El CU025 todavía no valida ni crea los cuestionarios.
+
+Escenario:
+El actor busca y selecciona un candidato/puesto activo. Durante la espera, otra
+operación lo da de baja. Si la creación posterior se basa solo en los IDs que
+envió el cliente, puede usar el registro que ya quedó inactivo.
+
+Pregunta para el profesor:
+¿Las bajas deben impedir iniciar evaluaciones nuevas? Si sí, ¿se revalida el
+estado al crear los cuestionarios y se conserva el vínculo en evaluaciones ya
+iniciadas?
+
+
+4. DOS INICIOS SIMULTÁNEOS DEL MISMO CUESTIONARIO
+================================================
+
+Dónde:
+- CompletarCuestionarioService.accederCuestionario es @Transactional. Busca un
+  cuestionario ACTIVO/EN_PROCESO y, si está ACTIVO, llama a iniciarCuestionario.
+- No encontré un bloqueo de fila en esa búsqueda.
+- CuestionarioPreguntaRepository no tiene una restricción única para el par
+  cuestionario_id + pregunta_id.
+- seleccionarPreguntasAleatorias y asignarPreguntasACuestionario todavía lanzan
+  UnsupportedOperationException.
+
+Escenario cuando se completen esos métodos:
+Dos solicitudes llegan casi a la vez. Ambas leen ACTIVO antes de que alguna
+guarde EN_PROCESO. Las dos pueden tratar de iniciar el cuestionario y asignar
+preguntas. @Transactional no garantiza por sí sola que una espere a la otra.
+También puede perderse una actualización de cantidadAccesos si ambas leen el
+mismo valor y después guardan incrementos.
+
+Pregunta para el profesor:
+¿Cómo se garantiza el requisito de una sola máquina/sesión a la vez: bloqueo de
+la fila del cuestionario, versión optimista, una sesión activa persistida u otro
+mecanismo? ¿Qué restricción debe impedir asignaciones de preguntas repetidas?
+
+
+5. DOS GUARDADOS O FINALIZACIONES SIMULTÁNEAS DEL MISMO BLOQUE
+=============================================================
+
+Dónde:
+- guardarRespuestasParciales y finalizarBloque leen el estado EN_PROCESO y el
+  bloque pendiente, y luego guardan respuestas/cambian el estado.
+- Ambas operaciones son @Transactional, pero no bloquean el cuestionario ni
+  comprueban que su estado/bloque siga igual justo antes del guardado.
+- schema.sql sí tiene uk_respuesta_cuestionario_pregunta, que evita dos filas de
+  respuesta para una pregunta del mismo cuestionario.
+
+Escenario:
+Dos solicitudes leen simultáneamente el mismo bloque pendiente. Una puede
+finalizarlo mientras la otra todavía intenta guardar una respuesta de ese bloque.
+La restricción evita duplicar una respuesta, pero por sí sola no coordina el
+cambio de estado ni determina cuál solicitud debe prevalecer.
+
+Pregunta para el profesor:
+¿Se permite responder desde dos sesiones? Si no, ¿qué bloqueo/versión debe
+proteger el cambio de bloque y el cierre del cuestionario? Si se permite, ¿cómo
+se resuelven dos cambios simultáneos a la misma respuesta?
+
+
+6. UNICIDAD GLOBAL DEL CUESTIONARIO POR CANDIDATO
+================================================
+
+Dónde:
+- schema.sql declara uk_cuestionario_candidato sobre cuestionario(candidato_id),
+  sin distinguir estados.
+- El código busca cuestionarios ACTIVO/EN_PROCESO, lo que sugiere que los estados
+  podrían importar para la regla de disponibilidad.
+
+Consecuencia a confirmar:
+La base no permite un segundo cuestionario para el candidato aunque el anterior
+esté COMPLETO, INCOMPLETO o SIN_CONTESTAR. Esto evita duplicados concurrentes,
+pero puede ser más restrictivo que “no tener otro cuestionario activo o en
+proceso”.
+
+Pregunta para el profesor:
+¿Un candidato puede volver a ser evaluado en otro proceso una vez que terminó el
+cuestionario? La restricción debe reflejar esa regla, no solo la consulta previa.
+
+
+7. RESUMEN DE LO QUE CONVIENE PREGUNTAR
+======================================
+
+1. ¿En qué momento se congela la configuración de una evaluación: al validar el
+   puesto, al crear el cuestionario o al finalizarlo?
+2. ¿Qué registros pueden cambiar mientras hay cuestionarios en curso y qué pasa
+   con los cuestionarios ya iniciados si se dan de baja o se editan?
+3. ¿Cómo se serializan dos inicios/guardados simultáneos para un mismo candidato
+   o cuestionario?
+4. ¿La unicidad del cuestionario por candidato es para toda la vida o solo para
+   los estados activos/en proceso?

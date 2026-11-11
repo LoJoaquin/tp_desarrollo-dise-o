@@ -1,0 +1,155 @@
+package com.diseno.miApp.Cuestionario;
+
+import com.diseno.miApp.Candidato.Candidato;
+import com.diseno.miApp.EstadoCuestionario.EstadoCuestionario;
+import com.diseno.miApp.Puesto.Puesto;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringJoiner;
+
+import static com.diseno.miApp.helpers.ManejoErroresHelper.errorConflicto;
+import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
+
+@Service
+public class CuestionarioServices {
+
+    private static final List<EstadoCuestionario> ESTADOS_ABIERTOS = List.of(
+            EstadoCuestionario.ACTIVO,
+            EstadoCuestionario.EN_PROCESO
+    );
+    private static final char[] CARACTERES_CLAVE =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789"
+                    .toCharArray();
+    private static final int LONGITUD_CLAVE = 8;
+
+    private final CuestionarioRepository cuestionarioRepository;
+    private final Duration plazoActivo;
+    private final SecureRandom random = new SecureRandom();
+
+    public CuestionarioServices(
+            CuestionarioRepository cuestionarioRepository,
+            @Value("${cuestionario.plazo-activo}") Duration plazoActivo) {
+        this.cuestionarioRepository = cuestionarioRepository;
+        this.plazoActivo = plazoActivo;
+    }
+
+
+    public List<Cuestionario> buscarTodosPorPuesto(Long idPuesto) {
+        return cuestionarioRepository.findByPuesto_Id(idPuesto);
+    }
+
+    public void validarSinCuestionarioActivoOEnProceso(
+            List<Long> idsCandidatos) {
+        if (idsCandidatos == null || idsCandidatos.isEmpty()) {
+            throw errorSolicitud("Debe seleccionar al menos un candidato");
+        }
+
+        StringJoiner candidatosOcupados = new StringJoiner(", ");
+
+        for (Long idCandidato : idsCandidatos) {
+            cuestionarioRepository
+                    .findFirstByCandidato_IdAndEstadoCuestionarioIn(
+                            idCandidato,
+                            ESTADOS_ABIERTOS)
+                    .ifPresent(cuestionario -> {
+                        Candidato candidato = cuestionario.getCandidato();
+                        String nombre = candidato == null
+                                ? "ID " + idCandidato
+                                : candidato.getApellido() + ", "
+                                        + candidato.getNombre()
+                                        + " (ID " + idCandidato + ")";
+                        candidatosOcupados.add(nombre);
+                    });
+        }
+
+        if (candidatosOcupados.length() > 0) {
+            throw errorConflicto(
+                    "No se pueden volver a evaluar estos candidatos porque " +
+                            "ya tienen un cuestionario activo o en proceso: " +
+                            candidatosOcupados);
+        }
+    }
+
+    @Transactional
+    public List<Cuestionario> crearCuestionarios(
+            List<Candidato> candidatos,
+            Puesto puesto) {
+        if (candidatos == null || candidatos.isEmpty()) {
+            throw errorSolicitud("Debe seleccionar al menos un candidato");
+        }
+        if (puesto == null || puesto.getId() == null) {
+            throw errorSolicitud("Debe indicar el puesto de la evaluación");
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        List<Cuestionario> nuevos = new ArrayList<>();
+
+        for (Candidato candidato : candidatos) {
+            Cuestionario cuestionario = new Cuestionario();
+            cuestionario.setCandidato(candidato);
+            cuestionario.setPuesto(puesto);
+            cuestionario.setEstadoCuestionario(EstadoCuestionario.ACTIVO);
+            cuestionario.setClaveIngreso(generarClaveIngreso());
+            cuestionario.setFechaCreacion(ahora);
+            cuestionario.setFechaLimiteActivo(ahora.plus(plazoActivo));
+            cuestionario.setFechaCambioEstado(ahora);
+            cuestionario.setCantidadAccesos(0);
+            nuevos.add(cuestionario);
+        }
+
+        // uk_cuestionario_candidato_abierto es la última defensa ante
+        // solicitudes simultáneas. Si falla una inserción, la transacción
+        // revierte la creación del lote completo.
+        return cuestionarioRepository.saveAll(nuevos);
+    }
+
+    private String generarClaveIngreso() {
+        StringBuilder clave = new StringBuilder(LONGITUD_CLAVE);
+        for (int i = 0; i < LONGITUD_CLAVE; i++) {
+            clave.append(CARACTERES_CLAVE[
+                    random.nextInt(CARACTERES_CLAVE.length)]);
+        }
+        return clave.toString();
+    }
+
+    public List<CandidatoPorPuestoProjection> buscarCandidatosPorPuestoCuestionario(
+            List<Long> idsPuestos) {
+        validarIdsPuestos(idsPuestos);
+
+        if (idsPuestos.isEmpty()) {
+            return List.of();
+        }
+
+        return cuestionarioRepository
+                .buscarCandidatosPorPuestoCuestionario(idsPuestos);
+    }
+
+    public List<EvaluacionesCompletasPorPuestoProjection>
+    contarCuestionariosCompletosPorPuestos(List<Long> idsPuestos) {
+        validarIdsPuestos(idsPuestos);
+
+        if (idsPuestos.isEmpty()) {
+            return List.of();
+        }
+
+        return cuestionarioRepository.contarEvaluacionesCompletasPorPuestos(
+                idsPuestos,
+                EstadoCuestionario.COMPLETO
+        );
+    }
+
+    private void validarIdsPuestos(List<Long> idsPuestos) {
+        if (idsPuestos == null
+                || idsPuestos.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw errorSolicitud("Los IDs de puesto deben ser positivos");
+        }
+    }
+
+}
