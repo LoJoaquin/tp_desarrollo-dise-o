@@ -10,6 +10,7 @@ const consultantItems: NavItem[] = [
   { label: "Inicio consultor", href: "/consultor" },
   { label: "Gestionar puestos", href: "/puestos" },
   { label: "Gestionar candidatos", href: "/candidatos" },
+  { label: "Evaluar candidatos", href: "/evaluaciones/nueva" },
   { label: "Reporte comparativo", href: "/reportes/comparativo" },
   { label: "Exportar resultados", href: "/exportar-resultados" },
   { label: "Orden de mérito", href: "/reportes/puestos" },

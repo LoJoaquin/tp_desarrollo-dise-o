@@ -4,6 +4,7 @@ import { PageHeader, Panel, StatusBadge } from "@/shared/ui";
 const tasks = [
   { title: "Gestionar puestos", description: "Buscar puestos y dar de alta, modificar o dar de baja.", href: "/puestos", state: "Conectado" },
   { title: "Gestionar candidatos", description: "Buscar, crear, modificar y dar de baja candidatos.", href: "/candidatos", state: "Conectado" },
+  { title: "Evaluar candidatos", description: "Seleccionar candidatos y puestos para generar cuestionarios de evaluación.", href: "/evaluaciones/nueva", state: "Conectado" },
   { title: "Emitir reporte comparativo", description: "Preparar la consulta comparativa del candidato y el puesto.", href: "/reportes/comparativo", state: "Falta endpoint" },
   { title: "Exportar resultados", description: "Elegir puesto y filtros para preparar el archivo de resultados.", href: "/exportar-resultados", state: "Falta endpoint" },
   { title: "Emitir orden de mérito", description: "Consultar evaluaciones por puesto y abrir su orden de mérito.", href: "/reportes/puestos", state: "Conectado" },
