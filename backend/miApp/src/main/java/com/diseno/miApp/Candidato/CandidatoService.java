@@ -1,8 +1,11 @@
 package com.diseno.miApp.Candidato;
 
 import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.List;
 
@@ -75,15 +78,39 @@ public class CandidatoService {
             );
         }
 
-        nombre = normalizarTextoOpcional(nombre);
-        apellido = normalizarTextoOpcional(apellido);
-        numeroCandidato = normalizarTextoOpcional(numeroCandidato);
+        String nombreNormalizado = normalizarTextoOpcional(nombre);
+        String apellidoNormalizado = normalizarTextoOpcional(apellido);
+        String numeroCandidatoNormalizado =
+                normalizarTextoOpcional(numeroCandidato);
 
-        return candidatoRepository.buscarCandidatos(
-                numeroCandidato,
-                nombre,
-                apellido
-        );
+        Specification<Candidato> criterios = (root, query, cb) -> {
+            List<Predicate> filtros = new ArrayList<>();
+
+            if (numeroCandidatoNormalizado != null) {
+                filtros.add(cb.equal(
+                        cb.lower(root.<String>get("numeroCandidato")),
+                        numeroCandidatoNormalizado.toLowerCase(Locale.ROOT)
+                ));
+            }
+
+            if (nombreNormalizado != null) {
+                filtros.add(cb.like(
+                        cb.lower(root.<String>get("nombre")),
+                        "%" + nombreNormalizado.toLowerCase(Locale.ROOT) + "%"
+                ));
+            }
+
+            if (apellidoNormalizado != null) {
+                filtros.add(cb.like(
+                        cb.lower(root.<String>get("apellido")),
+                        "%" + apellidoNormalizado.toLowerCase(Locale.ROOT) + "%"
+                ));
+            }
+
+            return cb.and(filtros.toArray(new Predicate[0]));
+        };
+
+        return candidatoRepository.findAll(criterios);
     }
 
     public Candidato modificarCandidato(
