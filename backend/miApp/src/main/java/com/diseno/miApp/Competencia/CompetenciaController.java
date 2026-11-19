@@ -19,6 +19,14 @@ public class CompetenciaController {
         return ResponseEntity.ok(competenciaService.listarTodas());
     }
 
+    @PostMapping("/buscar")
+    public ResponseEntity<List<Competencia>> buscarPorNombreConteniendo(
+            @RequestBody CompetenciaBuscarRequest request) {
+        return ResponseEntity.ok(
+                competenciaService.buscarConteniendo(request)
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Competencia> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(competenciaService.buscarPorId(id));

@@ -1,7 +1,9 @@
 import { api } from "@/shared/api";
-import type { Factor, CreateFactorRequest, UpdateFactorRequest } from "./types";
+import type { Factor, CreateFactorRequest, SearchFactorsRequest, UpdateFactorRequest } from "./types";
 
 export const listFactors = () => api.get<Factor[]>("factor");
+export const searchFactors = (body: SearchFactorsRequest) =>
+  api.post<Factor[], SearchFactorsRequest>("factor/buscar", body);
 export const getFactor = (id: number) => api.get<Factor>(`factor/${id}`);
 export const listFactorsByCompetency = (id: number) => api.get<Factor[]>(`factor/competencia/${id}`);
 export const createFactor = (body: CreateFactorRequest) => api.post<Factor, CreateFactorRequest>("factor", body);

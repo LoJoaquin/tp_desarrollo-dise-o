@@ -1,5 +1,7 @@
 package com.diseno.miApp.autenticador;
 
-public class AutenticarResponse {
-    private String token;
+public record AutenticarResponse(
+        String token,
+        Long idCandidato,
+        String nombreCandidato) {
 }

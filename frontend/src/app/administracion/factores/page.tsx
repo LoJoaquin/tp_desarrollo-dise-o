@@ -2,9 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as competencyService from "@/features/competencies/service";
+import { useCompetencies } from "@/features/competencies/hooks";
 import type { Competency } from "@/features/competencies/types";
-import { Button, Field, LoadingState, Notice, PageHeader, Panel, SelectField } from "@/shared/ui";
+import { Button, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, SelectField } from "@/shared/ui";
 
 export default function FactorsManagementPage() {
   const router = useRouter();
@@ -14,7 +14,12 @@ export default function FactorsManagementPage() {
   const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  useEffect(() => { competencyService.listCompetencies().then(setCompetencies).catch((error) => setMessage(error instanceof Error ? error.message : "No se pudieron cargar competencias.")).finally(() => setLoading(false)); }, []);
+  const competencyList = useCompetencies();
+  useEffect(() => {
+    let mounted = true;
+    competencyList.execute(undefined).then((rows) => { if (mounted && rows) setCompetencies(rows); }).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [competencyList.execute]);
   function search(event: FormEvent) {
     event.preventDefault();
     if (!competencyId && !codigo.trim() && !nombre.trim()) { setMessage("Completá al menos un criterio para buscar."); return; }
@@ -34,6 +39,7 @@ export default function FactorsManagementPage() {
         <div className="flex items-end justify-end gap-2"><Button type="button" variant="secondary" onClick={() => { setCompetencyId(""); setCodigo(""); setNombre(""); setMessage(""); }}>Limpiar</Button><Button type="button" variant="secondary" onClick={() => router.push("/administracion/factores/nuevo")}>Nuevo factor</Button><Button>Buscar</Button></div>
       </form>}
       {message && <Notice tone="error">{message}</Notice>}
+      <ErrorMessage error={competencyList.error} />
     </Panel>
     <Notice title="Búsqueda de factores">Completá al menos un filtro y presioná “Buscar” para ver los resultados.</Notice>
   </>;

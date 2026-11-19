@@ -18,7 +18,7 @@ import com.diseno.miApp.OrdenDeMerito.OrdenMeritoDTO;
 import com.diseno.miApp.OrdenDeMerito.OrdenMeritoGrupoDTO;
 import com.diseno.miApp.Puesto.*;
 import com.diseno.miApp.RespuestaPreguntaCuestionario.*;
-import com.diseno.miApp.CaracteristicasPuesto.*;
+import com.diseno.miApp.ModeloCuestionario.ModeloCompetencia;
 import com.diseno.miApp.helpers.CalculoPuntajeHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -142,15 +142,6 @@ public class ReporteServices {
             );
         }
 
-        List<CaracteristicasPuesto> caracteristicas =
-                puestoServices.obtenerCaracteristicas(idPuesto);
-
-        if (caracteristicas.isEmpty()) {
-            throw errorSolicitud(
-                    "El puesto no tiene ponderaciones mínimas configuradas"
-            );
-        }
-
         Map<String, List<OrdenMeritoDTO>> matriz = crearGruposPorEstado();
 
         for (Cuestionario cuestionario : cuestionarios) {
@@ -165,10 +156,16 @@ public class ReporteServices {
                                 cuestionario.getId()
                         );
 
+                if (cuestionario.getModelo() == null) {
+                    throw errorSolicitud(
+                            "El cuestionario completo no tiene un modelo congelado"
+                    );
+                }
+
                 CalculoPuntajeHelper.ResultadoPuntaje resultado =
                         calculoPuntajeHelper.calcularResultado(
                                 respuestas,
-                                caracteristicas
+                                cuestionario.getModelo().getCompetencias()
                         );
 
                 puntaje = resultado.puntajeFinal();

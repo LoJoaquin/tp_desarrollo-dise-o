@@ -1,10 +1,19 @@
 "use client";
-import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
-import { createCompany, searchCompanies, updateCompany } from "./service";
+
+import { useServiceAction } from "@/shared/hooks/use-service-action";
+import { createCompany, listCompanies, searchCompanies, updateCompany } from "./service";
 import type { CreateCompanyRequest, SearchCompaniesRequest, UpdateCompanyRequest } from "./types";
 
-export function useCompanySearch(criteria: SearchCompaniesRequest) {
-  return useApiQuery(() => searchCompanies(criteria), [criteria.id, criteria.nombre]);
-}
-export function useCreateCompany() { return useApiMutation((body: CreateCompanyRequest) => createCompany(body)); }
-export function useUpdateCompany() { return useApiMutation(({ id, body }: { id: number; body: UpdateCompanyRequest }) => updateCompany(id, body)); }
+export const useCompanySearch = () =>
+  useServiceAction((criteria: SearchCompaniesRequest) => searchCompanies(criteria));
+
+export const useCompanies = () =>
+  useServiceAction<void, Awaited<ReturnType<typeof listCompanies>>>(() => listCompanies());
+
+export const useCreateCompany = () =>
+  useServiceAction((body: CreateCompanyRequest) => createCompany(body));
+
+export const useUpdateCompany = () =>
+  useServiceAction(({ id, body }: { id: number; body: UpdateCompanyRequest }) =>
+    updateCompany(id, body),
+  );

@@ -1,6 +1,7 @@
 package com.diseno.miApp.autenticador;
 
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/login")
@@ -11,7 +12,7 @@ public class AutenticarController {
     }
   @PostMapping("/candidato")
     public AutenticarResponse autenticarCandidato(
-            @RequestBody AutenticarCandidatoRequest request
+            @Valid @RequestBody AutenticarCandidatoRequest request
   ){
       return autenticarService.autenticarCandidato(request);
   }

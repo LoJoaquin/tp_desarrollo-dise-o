@@ -16,6 +16,11 @@ public class EmpresaController {
         this.empresaService = empresaService;
     }
 
+    @GetMapping
+    public ResponseEntity<List<Empresa>> listarEmpresas() {
+        return ResponseEntity.ok(empresaService.listarTodas());
+    }
+
     // CREAR
     @PostMapping("/crear")
     public ResponseEntity<Empresa> crearEmpresa(

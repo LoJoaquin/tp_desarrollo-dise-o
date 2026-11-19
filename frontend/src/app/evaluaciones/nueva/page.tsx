@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import * as service from "@/features/evaluations/service";
+import { useConfirmEvaluation, useSearchCandidatesForEvaluation, useValidateCandidateSelection, useVerifyEvaluationPosition } from "@/features/evaluations/hooks";
 import type { EvaluationCandidate, EvaluationPosition, RequiredCompetency, ConfirmedEvaluation } from "@/features/evaluations/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, DataTable, ErrorMessage, Field, Notice, PageHeader, Panel, SelectField, ValidationSummary } from "@/shared/ui";
 
 export default function NewEvaluationPage() {
@@ -17,7 +16,11 @@ export default function NewEvaluationPage() {
   const [positionId, setPositionId] = useState("");
   const [competencies, setCompetencies] = useState<RequiredCompetency[] | null>(null);
   const [confirmed, setConfirmed] = useState<ConfirmedEvaluation[] | null>(null);
-  const action = useAction();
+  const searchAction = useSearchCandidatesForEvaluation();
+  const selectionAction = useValidateCandidateSelection();
+  const positionAction = useVerifyEvaluationPosition();
+  const confirmAction = useConfirmEvaluation();
+  const pending = searchAction.isPending || selectionAction.isPending || positionAction.isPending || confirmAction.isPending;
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,16 +39,16 @@ export default function NewEvaluationPage() {
     setPositionId("");
     setCompetencies(null);
     setConfirmed(null);
-    action.clear();
+    searchAction.clear();
 
-    const result = await action.run(() => service.searchCandidatesForEvaluation(criteria));
+    const result = await searchAction.execute(criteria);
     if (result) setMatches(result);
   }
 
   async function continueSelection() {
-    action.clear();
-    const result = await action.run(
-      () => service.validateSelectionAndListPositions({ idsCandidatos: selected }),
+    selectionAction.clear();
+    const result = await selectionAction.execute(
+      { idsCandidatos: selected },
       "Selección validada.",
     );
     if (result) {
@@ -59,20 +62,16 @@ export default function NewEvaluationPage() {
 
   async function verifyPosition() {
     if (!positionId) return;
-    action.clear();
-    const result = await action.run(
-      () => service.verifyEvaluationPosition({ idPuesto: Number(positionId) }),
-    );
+    positionAction.clear();
+    const result = await positionAction.execute({ idPuesto: Number(positionId) });
     if (result) setCompetencies(result);
   }
 
   async function confirm() {
     if (!positionId || selected.length === 0) return;
     if (!window.confirm("¿Confirmar la evaluación para los candidatos y el puesto seleccionados?")) return;
-    action.clear();
-    const result = await action.run(
-      () => service.confirmEvaluation({ idsCandidatos: selected, idPuesto: Number(positionId) }),
-    );
+    confirmAction.clear();
+    const result = await confirmAction.execute({ idsCandidatos: selected, idPuesto: Number(positionId) });
     if (result) setConfirmed(result);
   }
 
@@ -115,7 +114,7 @@ export default function NewEvaluationPage() {
             />
           </div>
           <ValidationSummary errors={criteriaError} />
-          <div><Button type="submit" disabled={action.isPending}>Buscar candidatos</Button></div>
+          <div><Button type="submit" disabled={pending}>Buscar candidatos</Button></div>
         </form>
       </Panel>
 
@@ -146,7 +145,7 @@ export default function NewEvaluationPage() {
           ]}
         />
         {matches.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button disabled={selected.length === 0 || action.isPending} onClick={continueSelection}>
+          <Button disabled={selected.length === 0 || pending} onClick={continueSelection}>
             Validar selección y elegir puesto
           </Button>
           {selected.length === 0 && <span className="text-sm text-slate-500">Seleccioná al menos un candidato.</span>}
@@ -173,7 +172,7 @@ export default function NewEvaluationPage() {
               {item.nombrePuesto}{item.nombreEmpresa ? " · " + item.nombreEmpresa : ""}
             </option>)}
           </SelectField>
-          <Button disabled={!positionId || action.isPending} onClick={verifyPosition}>Verificar puesto</Button>
+          <Button disabled={!positionId || pending} onClick={verifyPosition}>Verificar puesto</Button>
         </div>
       </Panel>}
 
@@ -189,7 +188,7 @@ export default function NewEvaluationPage() {
             />
           : <Notice tone="warning">El backend no devolvió competencias para el puesto seleccionado.</Notice>}
         {competencies.length > 0 && <div className="mt-4">
-          <Button disabled={action.isPending} onClick={confirm}>Confirmar evaluación</Button>
+          <Button disabled={pending} onClick={confirm}>Confirmar evaluación</Button>
         </div>}
       </Panel>}
 
@@ -209,7 +208,10 @@ export default function NewEvaluationPage() {
         />
       </Panel>}
 
-      <ErrorMessage error={action.error} />
+      <ErrorMessage error={searchAction.error} />
+      <ErrorMessage error={selectionAction.error} />
+      <ErrorMessage error={positionAction.error} />
+      <ErrorMessage error={confirmAction.error} />
     </div>
   </>;
 }

@@ -2,9 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/candidates/service";
+import { useCandidateLookupByNumber, useCreateCandidate, useNationalities, useUpdateCandidate } from "@/features/candidates/hooks";
 import type { Candidate, CreateCandidateRequest, NationalityOption } from "@/features/candidates/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, CreateAnotherPrompt, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, SelectField, TextAreaField, ValidationSummary } from "@/shared/ui";
 
 function blankCandidate(): CreateCandidateRequest {
@@ -12,6 +11,7 @@ function blankCandidate(): CreateCandidateRequest {
   numeroCandidato: "", apellido: "", nombre: "", tipoDocumento: null,
   numeroDocumento: null, fechaNacimiento: null, genero: null,
   nacionalidad: null, email: null, escolaridad: null,
+  contrasenia: "",
   };
 }
 
@@ -23,13 +23,17 @@ export default function CandidateForm({ candidateId, numeroCandidato }: { candid
   const [loadError, setLoadError] = useState<unknown>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [created, setCreated] = useState(false);
-  const action = useAction();
+  const nationalityQuery = useNationalities();
+  const candidateLookup = useCandidateLookupByNumber();
+  const createCandidate = useCreateCandidate();
+  const updateCandidate = useUpdateCandidate();
 
   useEffect(() => {
-    service.listNationalities().then(setNationalities).catch(setLoadError);
+    void nationalityQuery.execute(undefined).then((rows) => { if (rows) setNationalities(rows); });
     if (!candidateId) return;
     if (!numeroCandidato) { setLoadError(new Error("No se recibió el número de candidato para cargar sus datos. Volvé a buscarlo.")); setLoading(false); return; }
-    service.searchCandidates({ numeroCandidato }).then((rows) => {
+    candidateLookup.execute(numeroCandidato).then((rows) => {
+      if (!rows) return;
       const candidate = rows.find((row) => row.id === candidateId);
       if (!candidate) throw new Error("No se encontró el candidato. Volvé a realizar la búsqueda.");
       setForm(fromCandidate(candidate));
@@ -47,23 +51,32 @@ export default function CandidateForm({ candidateId, numeroCandidato }: { candid
     if (!form.numeroDocumento?.trim()) errors.push("Ingresá el número de documento.");
     else if (!/^[0-9]+$/.test(form.numeroDocumento.trim())) errors.push("El número de documento solo puede contener dígitos.");
     if (!form.genero) errors.push("Seleccioná el género.");
+    if (!candidateId && form.contrasenia.trim().length < 4) errors.push("Ingresá una contraseña provisoria de al menos 4 caracteres para el candidato.");
     if (form.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.push("Ingresá un email válido.");
     setValidationErrors(errors);
     if (errors.length) return;
     const payload = { ...form, fechaNacimiento: form.fechaNacimiento || null };
-    const result = candidateId
-      ? await action.run(() => service.updateCandidate(candidateId, payload), "Candidato modificado.")
-      : await action.run(() => service.createCandidate(payload));
-    if (!result) return;
-    if (candidateId) router.push("/candidatos");
-    else setCreated(true);
+    if (candidateId) {
+      const { contrasenia, ...sinContrasenia } = payload;
+      const update = contrasenia.trim() ? payload : sinContrasenia;
+      const result = await updateCandidate.execute(
+        { id: candidateId, body: update },
+        "Candidato modificado.",
+      );
+      if (result) router.push("/candidatos");
+      return;
+    }
+
+    const result = await createCandidate.execute(payload);
+    if (result) setCreated(true);
   }
 
   function createAnother() {
     setForm(blankCandidate());
     setValidationErrors([]);
     setCreated(false);
-    action.clear();
+    createCandidate.clear();
+    updateCandidate.clear();
   }
 
   if (created) return <CreateAnotherPrompt
@@ -90,10 +103,12 @@ export default function CandidateForm({ candidateId, numeroCandidato }: { candid
           <SelectField label="Nacionalidad" value={form.nacionalidad ?? ""} onChange={(event) => setForm({ ...form, nacionalidad: event.target.value || null })}><option value="">Seleccionar…</option>{nationalities.map((item) => <option value={item.codigo} key={item.codigo}>{item.nombre}</option>)}</SelectField>
           <Field label="Email" type="email" value={form.email ?? ""} onChange={(event) => { setForm({ ...form, email: event.target.value || null }); setValidationErrors([]); }} />
         </div>
+        <Field label={candidateId ? "Cambiar contraseña (opcional)" : "Contraseña provisoria para el candidato *"} type="password" autoComplete={candidateId ? "new-password" : "new-password"} value={form.contrasenia} onChange={(event) => { setForm({ ...form, contrasenia: event.target.value }); setValidationErrors([]); }} />
         <TextAreaField label="Escolaridad" value={form.escolaridad ?? ""} onChange={(event) => setForm({ ...form, escolaridad: event.target.value || null })} />
         <ValidationSummary errors={validationErrors} />
-        <ErrorMessage error={loadError ?? action.error} />{action.success && <Notice tone="success">{action.success}</Notice>}
-        <div className="flex gap-2"><Button disabled={action.isPending}>{candidateId ? "Guardar cambios" : "Crear candidato"}</Button><Button type="button" variant="secondary" onClick={() => router.push("/candidatos")}>Cancelar</Button></div>
+        <ErrorMessage error={loadError ?? nationalityQuery.error ?? candidateLookup.error ?? createCandidate.error ?? updateCandidate.error} />
+        {(createCandidate.success || updateCandidate.success) && <Notice tone="success">{createCandidate.success || updateCandidate.success}</Notice>}
+        <div className="flex gap-2"><Button disabled={createCandidate.isPending || updateCandidate.isPending}>{candidateId ? "Guardar cambios" : "Crear candidato"}</Button><Button type="button" variant="secondary" onClick={() => router.push("/candidatos")}>Cancelar</Button></div>
       </form>}
     </Panel>
   </>;
@@ -111,5 +126,6 @@ function fromCandidate(candidate: Candidate): CreateCandidateRequest {
     nacionalidad: candidate.nacionalidad,
     email: candidate.email,
     escolaridad: candidate.escolaridad,
+    contrasenia: "",
   };
 }

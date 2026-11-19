@@ -35,18 +35,20 @@ export async function request<TResponse>(
   method: HttpMethod,
   path: string,
   body?: unknown,
+  token?: string,
 ): Promise<TResponse> {
   const url = route(path);
   let response: Response;
 
   try {
+    const headers: Record<string, string> = body === undefined
+      ? { Accept: "application/json" }
+      : { Accept: "application/json", "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
     response = await fetch(url, {
       method,
       cache: "no-store",
-      headers: body === undefined ? { Accept: "application/json" } : {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
@@ -94,6 +96,8 @@ export async function request<TResponse>(
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T, B = unknown>(path: string, body: B) => request<T>("POST", path, body),
+  postWithToken: <T, B = unknown>(path: string, body: B, token: string) => request<T>("POST", path, body, token),
+  patchWithToken: <T, B = unknown>(path: string, body: B, token: string) => request<T>("PATCH", path, body, token),
   put: <T, B = unknown>(path: string, body: B) => request<T>("PUT", path, body),
   patch: <T, B = unknown>(path: string, body?: unknown) => request<T>("PATCH", path, body),
   delete: (path: string) => request<void>("DELETE", path),

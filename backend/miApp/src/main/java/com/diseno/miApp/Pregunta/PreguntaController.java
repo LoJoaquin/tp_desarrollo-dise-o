@@ -26,6 +26,12 @@ public class PreguntaController {
         return ResponseEntity.ok(preguntaService.listarTodas());
     }
 
+    @PostMapping("/buscar")
+    public ResponseEntity<List<Pregunta>> buscar(
+            @RequestBody PreguntaBuscarRequest request) {
+        return ResponseEntity.ok(preguntaService.buscarConteniendo(request));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Pregunta> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(preguntaService.buscarPorId(id));

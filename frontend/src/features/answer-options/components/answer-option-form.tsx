@@ -2,9 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/answer-options/service";
+import { useAnswerOption, useCreateAnswerOption, useUpdateAnswerOption } from "@/features/answer-options/hooks";
 import type { AnswerOption, AnswerOptionDetail } from "@/features/answer-options/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { appRoutes } from "@/shared/navigation/routes";
 import { Button, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, TextAreaField, ValidationSummary } from "@/shared/ui";
 
@@ -21,7 +20,9 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
   const [loadError, setLoadError] = useState<unknown>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [createdName, setCreatedName] = useState<string | null>(null);
-  const action = useAction();
+  const getAnswerOption = useAnswerOption();
+  const createAnswerOption = useCreateAnswerOption();
+  const updateAnswerOption = useUpdateAnswerOption();
 
   useEffect(() => {
     if (!isUpdate) return;
@@ -30,7 +31,10 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
       setLoading(false);
       return;
     }
-    service.getAnswerOption(answerOptionId).then((option) => setForm(fromAnswerOption(option))).catch(setLoadError).finally(() => setLoading(false));
+    getAnswerOption.execute(answerOptionId)
+      .then((option) => { if (option) setForm(fromAnswerOption(option)); })
+      .catch(setLoadError)
+      .finally(() => setLoading(false));
   }, [isUpdate, answerOptionId]);
 
   function updateDetail(index: number, detail: DetailForm) {
@@ -63,19 +67,19 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
     if (isUpdate && !answerOptionId) return;
 
     if (isUpdate) {
-      const option = await action.run(() => service.updateAnswerOption(answerOptionId!, {
+      const option = await updateAnswerOption.execute({ id: answerOptionId, body: {
         descripcion: form.descripcion.trim().toLocaleUpperCase("es-AR"),
         detalles: form.detalles.map((detail) => ({ id: detail.id!, ordenVisualizacion: Number(detail.ordenVisualizacion), descripcion: detail.descripcion.trim().toLocaleUpperCase("es-AR") })),
-      }), "La operación ha culminado con éxito.");
+      } }, "La operación ha culminado con éxito.");
       if (option) router.push(appRoutes.answerOptionResults);
       return;
     }
 
-    const option = await action.run(() => service.createAnswerOption({
+    const option = await createAnswerOption.execute({
       nombre: form.nombre.trim().toLocaleUpperCase("es-AR"),
       descripcion: form.descripcion.trim().toLocaleUpperCase("es-AR"),
       detalles: form.detalles.map((detail) => ({ ordenVisualizacion: Number(detail.ordenVisualizacion), descripcion: detail.descripcion.trim().toLocaleUpperCase("es-AR") })),
-    }));
+    });
     if (option) setCreatedName(option.nombre);
   }
 
@@ -83,7 +87,8 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
     setForm(blank);
     setCreatedName(null);
     setValidationErrors([]);
-    action.clear();
+    createAnswerOption.clear();
+    updateAnswerOption.clear();
   }
 
   if (createdName) return <>
@@ -97,7 +102,7 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
     <PageHeader eyebrow={isUpdate ? "CU030 · Modificación" : "CU029 · Alta"} title={isUpdate ? "Modificar opción de respuesta" : "Dar de alta opción de respuesta"} description={isUpdate ? "El nombre no se modifica y no se pueden agregar ni quitar detalles." : "Completá el nombre, la descripción y la lista ordenada de opciones."} />
     <Panel title={isUpdate ? "Datos de la opción" : "Nueva opción de respuesta"}>
       {loading ? <LoadingState label="Cargando la opción de respuesta…" /> : <form noValidate onSubmit={submit} className="grid max-w-3xl gap-4">
-        <ErrorMessage error={loadError} />
+        <ErrorMessage error={loadError ?? getAnswerOption.error ?? createAnswerOption.error ?? updateAnswerOption.error} />
         {!isUpdate && <Field label="Nombre" value={form.nombre} onChange={(event) => { setForm({ ...form, nombre: event.target.value.toLocaleUpperCase("es-AR") }); setValidationErrors([]); }} />}
         {isUpdate && <Field label="Nombre (solo lectura)" readOnly value={form.nombre} />}
         <TextAreaField label="Descripción" value={form.descripcion} onChange={(event) => { setForm({ ...form, descripcion: event.target.value.toLocaleUpperCase("es-AR") }); setValidationErrors([]); }} />
@@ -112,9 +117,8 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
         </fieldset>
         {isUpdate && <Notice tone="info">La modificación conserva la cantidad de opciones existente. Podés cambiar el orden y las descripciones, pero no agregar ni quitar opciones.</Notice>}
         <ValidationSummary errors={validationErrors} />
-        <ErrorMessage error={action.error} />
-        {action.success && <Notice tone="success">{action.success}</Notice>}
-        <div className="flex gap-2"><Button disabled={action.isPending}>{action.isPending ? "Guardando…" : isUpdate ? "Guardar cambios" : "Crear opción"}</Button><Button type="button" variant="secondary" onClick={() => router.push(appRoutes.answerOptions)}>Cancelar</Button></div>
+        {updateAnswerOption.success && <Notice tone="success">{updateAnswerOption.success}</Notice>}
+        <div className="flex gap-2"><Button disabled={createAnswerOption.isPending || updateAnswerOption.isPending}>{createAnswerOption.isPending || updateAnswerOption.isPending ? "Guardando…" : isUpdate ? "Guardar cambios" : "Crear opción"}</Button><Button type="button" variant="secondary" onClick={() => router.push(appRoutes.answerOptions)}>Cancelar</Button></div>
       </form>}
     </Panel>
   </>;

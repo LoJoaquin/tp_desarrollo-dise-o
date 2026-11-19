@@ -1,10 +1,9 @@
 import { assertCapabilityAvailable } from "@/features/capabilities";
 import type { CandidateLoginRequest, ConsultantLoginRequest, LoginResponse } from "./types";
+import { api } from "@/shared/api";
 
-// Keep the request shapes documented while authentication remains unavailable in the backend.
-export async function loginCandidate(_body: CandidateLoginRequest): Promise<LoginResponse> {
-  assertCapabilityAvailable("candidateLogin");
-  throw new Error("El backend no devolvió una sesión válida.");
+export async function loginCandidate(body: CandidateLoginRequest): Promise<LoginResponse> {
+  return api.post<LoginResponse, CandidateLoginRequest>("login/candidato", body);
 }
 
 export async function loginConsultant(_body: ConsultantLoginRequest): Promise<LoginResponse> {

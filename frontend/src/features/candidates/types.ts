@@ -17,7 +17,7 @@ export type Candidate = {
   updatedAt: string | null;
 };
 export type SearchCandidatesRequest = { apellido?: string | null; nombre?: string | null; numeroCandidato?: string | null };
-export type CreateCandidateRequest = Omit<Candidate, "id" | "estaActivo" | "updatedAt" | "createdAt"> & { createdAt?: string | null };
-export type UpdateCandidateRequest = Omit<CreateCandidateRequest, "createdAt">;
+export type CreateCandidateRequest = Omit<Candidate, "id" | "estaActivo" | "updatedAt" | "createdAt"> & { createdAt?: string | null; contrasenia: string };
+export type UpdateCandidateRequest = Omit<CreateCandidateRequest, "createdAt" | "contrasenia"> & { contrasenia?: string };
 export type CandidateCreatedResponse = Omit<Candidate, "estaActivo" | "createdAt" | "updatedAt">;
 export type NationalityOption = { codigo: Nacionalidad; nombre: string };

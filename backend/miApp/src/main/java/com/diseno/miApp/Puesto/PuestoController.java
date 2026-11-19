@@ -55,7 +55,7 @@ public class PuestoController {
     @PostMapping("/buscar")
     public ResponseEntity<List<PuestoSalidaResponse>> buscarPuestos(
             @RequestBody PuestoRequest request) {
-        return ResponseEntity.ok(puestoService.buscarPuestos(request).stream()
+        return ResponseEntity.ok(puestoService.buscarPuestosConteniendo(request).stream()
                 .map(this::aResponse).toList());
     }
 

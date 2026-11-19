@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
+import static com.diseno.miApp.helpers.ValidacionesHelper.patronContieneOpcional;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -18,6 +19,12 @@ public class OpcionRespuestaService {
 
     public List<OpcionRespuesta> listarTodas() {
         return repository.findAll();
+    }
+
+    public List<OpcionRespuesta> buscarActivasPorNombreConteniendo(
+            String nombre) {
+        String patron = patronContieneOpcional(nombre);
+        return repository.buscarActivasPorNombreConteniendo(patron);
     }
 
     public OpcionRespuesta guardar(OpcionRespuesta opcion) {

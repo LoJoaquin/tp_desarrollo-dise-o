@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
 
 @Service
 public class DetalleOpcionRespuestaService {
@@ -55,7 +56,10 @@ public class DetalleOpcionRespuestaService {
 
         for (DetalleOpcionCrearRequest request : requests) {
             DetalleOpcionRespuesta detalle = new DetalleOpcionRespuesta();
-            detalle.setDescrpicion(request.descripcion().trim());
+            detalle.setDescrpicion(normalizarMayusculasObligatorio(
+                    request.descripcion(),
+                    "Cada detalle requiere una descripción"
+            ));
             detalle.setOrdenVisualizacion(request.ordenVisualizacion());
             detalle.setOpcionRespuesta(opcionRespuesta);
             detalles.add(detalle);
@@ -103,7 +107,10 @@ public class DetalleOpcionRespuestaService {
             DetalleOpcionRespuesta detalle =
                     existentesPorId.get(request.id());
 
-            detalle.setDescrpicion(request.descripcion().trim());
+            detalle.setDescrpicion(normalizarMayusculasObligatorio(
+                    request.descripcion(),
+                    "Cada detalle requiere una descripción"
+            ));
             detalle.setOrdenVisualizacion(request.ordenVisualizacion());
         }
 
@@ -182,11 +189,11 @@ public class DetalleOpcionRespuestaService {
                 );
             }
 
-            String descripcionNormalizada = request.descripcion()
-                    .trim()
-                    .toLowerCase(Locale.ROOT);
-
-            if (!descripciones.add(descripcionNormalizada)) {
+            String descripcion = normalizarMayusculasObligatorio(
+                    request.descripcion(),
+                    "Cada detalle requiere una descripción"
+            );
+            if (!descripciones.add(descripcion)) {
                 throw errorSolicitud(
                         "Las descripciones de los detalles no pueden repetirse"
                 );
@@ -220,11 +227,11 @@ public class DetalleOpcionRespuestaService {
                 );
             }
 
-            String descripcionNormalizada = request.descripcion()
-                    .trim()
-                    .toLowerCase(Locale.ROOT);
-
-            if (!descripciones.add(descripcionNormalizada)) {
+            String descripcion = normalizarMayusculasObligatorio(
+                    request.descripcion(),
+                    "Cada detalle requiere una descripción"
+            );
+            if (!descripciones.add(descripcion)) {
                 throw errorSolicitud(
                         "Las descripciones de los detalles no pueden repetirse"
                 );

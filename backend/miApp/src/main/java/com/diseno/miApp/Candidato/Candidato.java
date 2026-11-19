@@ -5,6 +5,7 @@ import com.diseno.miApp.Nacionalidad.Nacionalidad;
 import com.diseno.miApp.genero.Genero;
 import com.diseno.miApp.tipoDocumento.TipoDocumento;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 @Entity
@@ -22,6 +23,9 @@ public class Candidato {
     @Enumerated(EnumType.STRING)
     private TipoDocumento tipoDocumento;
     private String numeroDocumento;
+    @JsonIgnore
+    @Column(name = "contrasenia", length = 255)
+    private String contrasenia;
     private LocalDate fechaNacimiento;
     @Enumerated(EnumType.STRING)
     private Genero genero;
@@ -95,6 +99,15 @@ public class Candidato {
 
     public void setNumeroDocumento(String numeroDocumento) {
         this.numeroDocumento = numeroDocumento;
+    }
+
+    @JsonIgnore
+    public String getContrasenia() {
+        return contrasenia;
+    }
+
+    public void setContrasenia(String contrasenia) {
+        this.contrasenia = contrasenia;
     }
 
     public LocalDate getFechaNacimiento() {

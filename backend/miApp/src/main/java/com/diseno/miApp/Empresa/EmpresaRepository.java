@@ -10,11 +10,14 @@ import java.util.List;
 @Repository
 public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 
+    @Query("SELECT e FROM Empresa e ORDER BY e.nombre ASC")
+    List<Empresa> listarTodas();
+
     @Query("""
         SELECT e
         FROM Empresa e
         WHERE (:id IS NULL OR e.id = :id)
-          AND (:nombre IS NULL OR LOWER(e.nombre) LIKE LOWER(:nombre))
+          AND (:nombre IS NULL OR e.nombre LIKE :nombre)
     """)
     List<Empresa> buscarEmpresas(
             @Param("id") Long id,

@@ -5,6 +5,9 @@ import com.diseno.miApp.Candidato.CandidatoService;
 import com.diseno.miApp.CaracteristicasPuesto.CaracteristicasPuesto;
 import com.diseno.miApp.Cuestionario.Cuestionario;
 import com.diseno.miApp.Cuestionario.CuestionarioServices;
+import com.diseno.miApp.ModeloCuestionario.ModeloCuestionario;
+import com.diseno.miApp.ModeloCuestionario.ModeloCuestionarioRepository;
+import com.diseno.miApp.ModeloCuestionario.ModeloCuestionarioService;
 import com.diseno.miApp.Factor.Factor;
 import com.diseno.miApp.Factor.FactorService;
 import com.diseno.miApp.Puesto.Puesto;
@@ -30,18 +33,24 @@ public class EvaluarCandidatoService {
     private final PuestoService puestoService;
     private final FactorService factorService;
     private final PreguntaService preguntaService;
+    private final ModeloCuestionarioService modeloCuestionarioService;
+    private final ModeloCuestionarioRepository modeloCuestionarioRepository;
 
     public EvaluarCandidatoService(
             CandidatoService candidatoService,
             CuestionarioServices cuestionarioServices,
             PuestoService puestoService,
             FactorService factorService,
-            PreguntaService preguntaService) {
+            PreguntaService preguntaService,
+            ModeloCuestionarioService modeloCuestionarioService,
+            ModeloCuestionarioRepository modeloCuestionarioRepository) {
         this.candidatoService = candidatoService;
         this.cuestionarioServices = cuestionarioServices;
         this.puestoService = puestoService;
         this.factorService = factorService;
         this.preguntaService = preguntaService;
+        this.modeloCuestionarioService = modeloCuestionarioService;
+        this.modeloCuestionarioRepository = modeloCuestionarioRepository;
     }
 
     // HTTP 1: búsqueda por número de candidato y/o coincidencia parcial de nombre/apellido.
@@ -113,8 +122,6 @@ public class EvaluarCandidatoService {
         }
 
         validarIdsCandidatos(request.idsCandidatos());
-        validarPuestoEvaluable(request.idPuesto());
-
         List<Candidato> candidatos = new ArrayList<>();
         for (Long idCandidato : request.idsCandidatos()) {
             Candidato candidato = candidatoService.buscarPorId(idCandidato);
@@ -130,8 +137,14 @@ public class EvaluarCandidatoService {
         }
 
         Puesto puesto = puestoService.buscarPorId(request.idPuesto());
+        // Reemplaza la validación previa y la selección al primer acceso:
+        // construye y valida el snapshot una sola vez, antes de persistir.
+        ModeloCuestionario modelo = modeloCuestionarioService
+                .construirYValidar(puesto);
+        modelo = modeloCuestionarioRepository.save(modelo);
         List<Cuestionario> cuestionarios =
-                cuestionarioServices.crearCuestionarios(candidatos, puesto);
+                cuestionarioServices.crearCuestionarios(
+                        candidatos, puesto, modelo);
 
         return cuestionarios.stream()
                 .map(cuestionario -> new EvaluarCandidatoResponse(

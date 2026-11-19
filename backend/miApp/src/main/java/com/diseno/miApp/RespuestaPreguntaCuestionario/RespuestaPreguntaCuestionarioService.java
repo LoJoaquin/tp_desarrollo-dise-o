@@ -41,9 +41,7 @@ public class RespuestaPreguntaCuestionarioService {
 
             existente.setCuestionario(cuestionario);
             existente.setPregunta(recibida.getPregunta());
-            existente.setDetalleOpcionRespuesta(
-                    recibida.getDetalleOpcionRespuesta()
-            );
+            existente.setOpcionSeleccionada(recibida.getOpcionSeleccionada());
             existente.setFechaRespuesta(LocalDate.now());
             respuestasParaGuardar.add(existente);
         }

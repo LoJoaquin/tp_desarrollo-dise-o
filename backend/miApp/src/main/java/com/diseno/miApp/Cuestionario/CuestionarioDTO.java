@@ -16,7 +16,7 @@ public record CuestionarioDTO(
         Map<Long, Double> puntajesPorCompetencia) {
 
     public record PreguntaDTO(
-            Long idPregunta,
+            Long idPreguntaModelo,
             String texto,
             String descripcion,
             Integer orden,
@@ -24,13 +24,13 @@ public record CuestionarioDTO(
     }
 
     public record DetalleRespuestaDTO(
-            Long id,
+            Long idOpcionModelo,
             String descripcion,
             Integer ordenVisualizacion) {
     }
 
     public record RespuestaDTO(
-            Long idPregunta,
-            Long idDetalleOpcionRespuesta) {
+            Long idPreguntaModelo,
+            Long idOpcionModelo) {
     }
 }

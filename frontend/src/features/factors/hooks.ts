@@ -1,12 +1,39 @@
 "use client";
-import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
-import * as service from "./service";
-import type { CreateFactorRequest, UpdateFactorRequest } from "./types";
 
-export const useFactors = () => useApiQuery(service.listFactors);
-export const useFactor = (id: number) => useApiQuery(() => service.getFactor(id), [id]);
-export const useFactorsByCompetency = (id: number) => useApiQuery(() => service.listFactorsByCompetency(id), [id]);
-export const useCreateFactor = () => useApiMutation((body: CreateFactorRequest) => service.createFactor(body));
-export const useUpdateFactor = () => useApiMutation(({ id, body }: { id: number; body: UpdateFactorRequest }) => service.updateFactor(id, body));
-export const useReactivateFactor = () => useApiMutation((id: number) => service.reactivateFactor(id));
-export const useDeleteFactor = () => useApiMutation((id: number) => service.deleteFactor(id));
+import { useServiceAction } from "@/shared/hooks/use-service-action";
+import * as service from "./service";
+import type { CreateFactorRequest, SearchFactorsRequest, UpdateFactorRequest } from "./types";
+
+export const useFactors = () =>
+  useServiceAction<void, Awaited<ReturnType<typeof service.listFactors>>>(
+    () => service.listFactors(),
+  );
+
+export const useFactor = () =>
+  useServiceAction((id: number) => service.getFactor(id));
+
+export const useFactorsByCompetency = () =>
+  useServiceAction((id: number) => service.listFactorsByCompetency(id));
+
+export const useFactorSearch = () =>
+  useServiceAction((criteria: SearchFactorsRequest) => service.searchFactors(criteria));
+
+export const useCreateFactor = () =>
+  useServiceAction((body: CreateFactorRequest) => service.createFactor(body));
+
+export const useUpdateFactor = () =>
+  useServiceAction(({ id, body }: { id: number; body: UpdateFactorRequest }) =>
+    service.updateFactor(id, body),
+  );
+
+export const useReactivateFactor = () =>
+  useServiceAction(async (id: number) => {
+    await service.reactivateFactor(id);
+    return true;
+  });
+
+export const useDeleteFactor = () =>
+  useServiceAction(async (id: number) => {
+    await service.deleteFactor(id);
+    return true;
+  });

@@ -8,7 +8,10 @@ import java.util.List;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.patronContieneOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.validarAlMenosUnCriterio;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -30,6 +33,42 @@ public class FactorService {
 
     public List<Factor> listarTodos() {
         return factorRepository.findAll();
+    }
+
+    public List<Factor> buscarConteniendo(FactorBuscarRequest request) {
+        if (request == null) {
+            throw errorSolicitud(
+                    "Debe enviar los criterios para buscar factores"
+            );
+        }
+
+        String competencia = patronContieneOpcional(
+                request.nombreCompetencia()
+        );
+        Long competenciaId = request.competenciaId();
+        if (competenciaId != null) {
+            validarIdPositivo(
+                    competenciaId,
+                    "El ID de competencia debe ser un número positivo"
+            );
+        }
+        String codigo = patronContieneOpcional(request.codigo());
+        String factor = patronContieneOpcional(request.nombreFactor());
+
+        validarAlMenosUnCriterio(
+                "Ingrese al menos un criterio para buscar factores",
+                competenciaId,
+                competencia,
+                codigo,
+                factor
+        );
+
+        return factorRepository.buscarConteniendo(
+                competenciaId,
+                competencia,
+                codigo,
+                factor
+        );
     }
 
     public Factor reactivarFactor(Long id) {
@@ -54,16 +93,10 @@ public class FactorService {
             throw errorSolicitud("Debe enviar los datos del factor");
         }
 
-        String codigo = normalizarTextoOpcional(request.getCodigo());
-        String nombre = normalizarTextoOpcional(request.getNombre());
-
-        if (codigo == null) {
-            throw errorSolicitud("El código es obligatorio");
-        }
-
-        if (nombre == null) {
-            throw errorSolicitud("El nombre es obligatorio");
-        }
+        String codigo = normalizarMayusculasObligatorio(
+                request.getCodigo(), "El código es obligatorio");
+        String nombre = normalizarMayusculasObligatorio(
+                request.getNombre(), "El nombre es obligatorio");
 
         Long idCompetencia = request.getCompetencia_id();
         validarIdPositivo(
@@ -74,7 +107,8 @@ public class FactorService {
         Factor factor = new Factor();
         factor.setCodigo(codigo);
         factor.setNombre(nombre);
-        factor.setDescripcion(normalizarTextoOpcional(request.getDescripcion()));
+        factor.setDescripcion(
+                normalizarMayusculasOpcional(request.getDescripcion()));
         factor.setNroOrden(request.getNroOrden());
         factor.setEstaActivo(true);
         factor.setCompetencia(competencia);
@@ -95,8 +129,9 @@ public class FactorService {
             );
         }
 
-        String nombre = normalizarTextoOpcional(request.getNombre());
-        String descripcion = normalizarTextoOpcional(request.getDescripcion());
+        String nombre = normalizarMayusculasOpcional(request.getNombre());
+        String descripcion = normalizarMayusculasOpcional(
+                request.getDescripcion());
         Long idCompetencia = request.getCompetencia_id();
         Integer nroOrden = request.getNroOrden();
 
@@ -108,7 +143,6 @@ public class FactorService {
                     "Debe enviar al menos un campo con valor para modificar"
             );
         }
-
         if (idCompetencia != null) {
             validarIdPositivo(
                     idCompetencia,

@@ -1,0 +1,192 @@
+@startuml
+
+class Consultor {
+  - id : Long
+  - nombre : String
+  - apellido : String
+  - email : String
+  - contrasenia : String
+  - isActive : Boolean
+}
+
+class Candidato {
+  - id : Long
+  - nombre : String
+  - apellido : String
+  - tipoDocumento : TipoDocumento
+  - nroDocumento : String
+  - fechaNacimiento : LocalDate
+  - genero : Genero
+  - nacionalidad : Nacionalidad
+  - email : String
+  - escolaridad : String
+  - isActivo : Boolean
+  - createdAt : LocalDateTime
+  - updatedAt : LocalDateTime
+}
+
+class Empresa {
+  - id : Long
+  - nombre : String
+}
+
+class Puesto {
+  - id : Long
+  - código : String
+  - nombre : String
+  - descripcion : String
+  - empresaId : Long
+  - estaActivo : Boolean
+}
+
+class CaracteristicaPuesto {
+  - id : Long
+  - puestoId : Long
+  - competenciaId : Long
+  - ponderacionRequerida : Integer
+}
+
+class Competencia {
+  - id : Long
+  - codigo : String
+  - nombre : String
+  - descripcion : String
+  - estaActiva : Boolean
+}
+
+class Factor {
+  - id : Long
+  - codigo : String
+  - nombre : String
+  - descripcion : String
+  - competenciaId : Long
+  - nroOrden : Integer
+  - estaActivo : Boolean
+}
+
+class Pregunta {
+  - id : Long
+  - factorId : Long
+  - nombre : String
+  - textoPregunta : String
+  - descripción : String
+  - isActive : Boolean
+  - opcionRespuestaId : Long
+}
+
+class OpcionRespuesta {
+  - id : Long
+  - nombre : String
+  - descripción : String
+}
+
+class DetalleOpcionRespuesta {
+  - id : Long
+  - opcionRespuestaId : Long
+  - descripción : String
+  - ordenVisualizacion : Integer
+}
+
+class PreguntaOpcionPonderacion {
+  - id : Long
+  - preguntaId : Long
+  - detalleOpcionRespuestaId : Long
+  - ponderación : Integer
+}
+
+class Cuestionario {
+  - id : Long
+  - candidatoId : Long
+  - puestoId : Long
+  - estado : EstadoCuestionario
+  - claveIngreso : String
+  - fechaCreacion : LocalDateTime
+  - fechaInicio : LocalDateTime
+  - fechaRealizacion : LocalDateTime
+  - fechaLimiteActivo : LocalDateTime
+  - fechaLimiteFinalizacion : LocalDateTime
+  - ultimoIngreso : LocalDateTime
+  - cantidadAccesos : Integer
+  - fechaCambioEstado : LocalDateTime
+}
+
+class CuestionarioPregunta {
+  - id : Long
+  - cuestionarioId : Long
+  - preguntaId : Long
+  - bloque : Integer
+  - orden : Integer
+}
+
+class RespuestaCuestionario {
+  - id : Long
+  - cuestionarioId : Long
+  - preguntaId : Long
+  - detalleOpcionRespuestaId : Long
+  - fechaRespuesta : LocalDate
+}
+
+class ResultadoCompetencia {
+  - id : Long
+  - cuestionarioId : Long
+  - competenciaId : Long
+  - puntajeObtenido : Float
+}
+
+enum EstadoCuestionario {
+  ACTIVO
+  EN_PROCESO
+  COMPLETO
+  INCOMPLETO
+  SIN_CONTESTAR
+}
+
+enum Genero {
+  FEMENINO
+  MASCULINO
+}
+
+enum Nacionalidad {
+
+}
+
+enum TipoDocumento {
+
+}
+
+Empresa "1" o-- "0..*" Puesto
+
+Puesto "1" *-- "1..*" CaracteristicaPuesto
+CaracteristicaPuesto "0..*" --> "1" Competencia
+
+Competencia "1" *-- "1..*" Factor
+Factor "1" *-- "0..*" Pregunta
+
+Pregunta "0..*" --> "1" OpcionRespuesta
+OpcionRespuesta "1" *-- "1..*" DetalleOpcionRespuesta
+
+Pregunta "1" *-- "1..*" PreguntaOpcionPonderacion
+PreguntaOpcionPonderacion "0..*" --> "1" DetalleOpcionRespuesta
+
+Candidato "1" -- "0..*" Cuestionario : completa >
+Puesto "1" -- "0..*" Cuestionario
+
+Cuestionario "1" *-- "1..*" CuestionarioPregunta
+CuestionarioPregunta "0..*" --> "1" Pregunta
+
+Cuestionario "1" *-- "0..*" RespuestaCuestionario
+RespuestaCuestionario "0..*" --> "1" Pregunta
+RespuestaCuestionario "0..*" --> "1" DetalleOpcionRespuesta
+
+Cuestionario "1" *-- "0..*" ResultadoCompetencia
+ResultadoCompetencia "0..*" --> "1" Competencia
+
+Cuestionario --> EstadoCuestionario
+
+Candidato --> Genero
+
+Candidato --> Nacionalidad
+
+Candidato --> TipoDocumento
+
+@enduml

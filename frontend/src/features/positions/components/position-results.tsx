@@ -2,21 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/positions/service";
+import { useDeletePosition, usePositionSearch, useReactivatePosition } from "@/features/positions/hooks";
 import type { Position, SearchPositionsRequest } from "@/features/positions/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, DataTable, ErrorMessage, LoadingState, Notice, PageHeader, Panel } from "@/shared/ui";
 
 export default function PositionResults({ criteria }: { criteria: SearchPositionsRequest }) {
   const router = useRouter();
   const [rows, setRows] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
-  const action = useAction();
-  async function load() { setLoading(true); const result = await action.run(() => service.searchPositions(criteria)); if (result) setRows(result); setLoading(false); }
-  useEffect(() => { void load(); }, []);
+  const searchPositions = usePositionSearch();
+  const deletePosition = useDeletePosition();
+  const reactivatePosition = useReactivatePosition();
+  async function load() { setLoading(true); const result = await searchPositions.execute(criteria); if (result) setRows(result); setLoading(false); }
+  useEffect(() => { void load(); }, [criteria.codigo, criteria.nombre, criteria.empresa]);
   async function toggle(row: Position) {
     if (row.estaActiva && !window.confirm(`¿Dar de baja el puesto ${row.nombre}?`)) return;
-    const result = await action.run(async () => { if (row.estaActiva) await service.deletePosition(row.id); else await service.reactivatePosition(row.id); return true; }, row.estaActiva ? "Puesto dado de baja." : "Puesto reactivado.");
+    const result = row.estaActiva
+      ? await deletePosition.execute(row.id, "Puesto dado de baja.")
+      : await reactivatePosition.execute(row.id, "Puesto reactivado.");
     if (result) await load();
   }
   return <>
@@ -28,7 +31,8 @@ export default function PositionResults({ criteria }: { criteria: SearchPosition
         { key: "empresa", header: "Empresa", render: (row) => row.empresaNombre ?? "—" },
         { key: "acciones", header: "Acciones", render: (row) => <div className="flex gap-2"><Button variant="secondary" onClick={() => router.push(`/puestos/${row.id}/modificar`)}>Modificar</Button><Button variant={row.estaActiva ? "danger" : "secondary"} onClick={() => void toggle(row)}>{row.estaActiva ? "Eliminar" : "Reactivar"}</Button></div> },
       ]} emptyTitle="No se encontraron puestos" emptyDescription="Volvé a la búsqueda y probá otros criterios." />}
-      <ErrorMessage error={action.error} />{action.success && <Notice tone="success">{action.success}</Notice>}
+      <ErrorMessage error={searchPositions.error ?? deletePosition.error ?? reactivatePosition.error} />
+      {(deletePosition.success || reactivatePosition.success) && <Notice tone="success">{deletePosition.success || reactivatePosition.success}</Notice>}
     </Panel>
   </>;
 }

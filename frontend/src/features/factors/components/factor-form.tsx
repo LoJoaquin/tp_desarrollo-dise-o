@@ -2,10 +2,9 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/factors/service";
-import * as competencyService from "@/features/competencies/service";
+import { useCompetencies } from "@/features/competencies/hooks";
+import { useCreateFactor, useFactor, useUpdateFactor } from "@/features/factors/hooks";
 import type { Competency } from "@/features/competencies/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, CreateAnotherPrompt, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, SelectField, TextAreaField, ValidationSummary } from "@/shared/ui";
 
 const blank = { codigo: "", nombre: "", descripcion: "", nroOrden: "", competencia_id: "" };
@@ -14,15 +13,25 @@ export default function FactorForm({ factorId }: { factorId?: number }) {
   const [form, setForm] = useState(blank);
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [loading, setLoading] = useState(!!factorId);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [created, setCreated] = useState(false);
-  const action = useAction();
+  const competencyList = useCompetencies();
+  const factorQuery = useFactor();
+  const createFactor = useCreateFactor();
+  const updateFactor = useUpdateFactor();
   useEffect(() => {
-    competencyService.listCompetencies().then(setCompetencies).catch(setLoadError);
-    if (!factorId) return;
-    service.getFactor(factorId).then((row) => setForm({ codigo: row.codigo, nombre: row.nombre, descripcion: row.descripcion ?? "", nroOrden: String(row.nroOrden ?? ""), competencia_id: String(row.competenciaId ?? "") })).catch(setLoadError).finally(() => setLoading(false));
-  }, [factorId]);
+    let mounted = true;
+    async function load() {
+      const rows = await competencyList.execute(undefined);
+      if (mounted && rows) setCompetencies(rows);
+      if (!factorId) return;
+      const row = await factorQuery.execute(factorId);
+      if (mounted && row) setForm({ codigo: row.codigo, nombre: row.nombre, descripcion: row.descripcion ?? "", nroOrden: String(row.nroOrden ?? ""), competencia_id: String(row.competenciaId ?? "") });
+      if (mounted) setLoading(false);
+    }
+    void load();
+    return () => { mounted = false; };
+  }, [factorId, competencyList.execute, factorQuery.execute]);
   async function submit(event: FormEvent) {
     event.preventDefault();
     const errors: string[] = [];
@@ -34,13 +43,13 @@ export default function FactorForm({ factorId }: { factorId?: number }) {
     setValidationErrors(errors);
     if (errors.length) return;
     const result = factorId
-      ? await action.run(() => service.updateFactor(factorId, { nombre: form.nombre, descripcion: form.descripcion || null, competencia_id: Number(form.competencia_id), nroOrden: Number(form.nroOrden) }), "Factor modificado.")
-      : await action.run(() => service.createFactor({ codigo: form.codigo, nombre: form.nombre, descripcion: form.descripcion || null, nroOrden: Number(form.nroOrden), estaActvivo: true, competencia_id: Number(form.competencia_id) }));
+      ? await updateFactor.execute({ id: factorId, body: { nombre: form.nombre, descripcion: form.descripcion || null, competencia_id: Number(form.competencia_id), nroOrden: Number(form.nroOrden) } }, "Factor modificado.")
+      : await createFactor.execute({ codigo: form.codigo, nombre: form.nombre, descripcion: form.descripcion || null, nroOrden: Number(form.nroOrden), estaActvivo: true, competencia_id: Number(form.competencia_id) });
     if (result && factorId) router.push("/administracion/factores");
     else if (result) setCreated(true);
   }
 
-  function createAnother() { setForm(blank); setValidationErrors([]); setCreated(false); action.clear(); }
+  function createAnother() { setForm(blank); setValidationErrors([]); setCreated(false); createFactor.clear(); }
 
   if (created) return <CreateAnotherPrompt title="Factor creado" description={`El factor “${form.nombre.trim()}” se creó correctamente.`} question="¿Deseás crear otro factor?" affirmativeLabel="Sí, crear otro" finishLabel="No, volver a gestionar factores" onCreateAnother={createAnother} onFinish={() => router.push("/administracion/factores")} />;
   return <>
@@ -51,8 +60,12 @@ export default function FactorForm({ factorId }: { factorId?: number }) {
       <TextAreaField label="Descripción" value={form.descripcion} onChange={(event) => setForm({ ...form, descripcion: event.target.value })} />
       <div className="grid gap-4 sm:grid-cols-2"><Field label="Número de orden" min="1" type="number" value={form.nroOrden} onChange={(event) => { setForm({ ...form, nroOrden: event.target.value }); setValidationErrors([]); }} /><SelectField label="Competencia" value={form.competencia_id} onChange={(event) => { setForm({ ...form, competencia_id: event.target.value }); setValidationErrors([]); }}><option value="">Seleccionar competencia</option>{competencies.filter((row) => row.estaActivo).map((row) => <option key={row.id} value={row.id}>{row.codigo} · {row.nombre}</option>)}</SelectField></div>
       <ValidationSummary errors={validationErrors} />
-      <ErrorMessage error={loadError ?? action.error} />{action.success && <Notice tone="success">{action.success}</Notice>}
-      <div className="flex gap-2"><Button disabled={action.isPending}>{factorId ? "Guardar cambios" : "Crear factor"}</Button><Button type="button" variant="secondary" onClick={() => router.push("/administracion/factores")}>Cancelar</Button></div>
+      <ErrorMessage error={competencyList.error} />
+      <ErrorMessage error={factorQuery.error} />
+      <ErrorMessage error={createFactor.error} />
+      <ErrorMessage error={updateFactor.error} />
+      {(createFactor.success || updateFactor.success) && <Notice tone="success">{createFactor.success || updateFactor.success}</Notice>}
+      <div className="flex gap-2"><Button disabled={createFactor.isPending || updateFactor.isPending}>{factorId ? "Guardar cambios" : "Crear factor"}</Button><Button type="button" variant="secondary" onClick={() => router.push("/administracion/factores")}>Cancelar</Button></div>
     </form>}</Panel>
   </>;
 }

@@ -27,6 +27,13 @@ public class FactorController {
                 .map(FactorResponse::desde).toList());
     }
 
+    @PostMapping("/buscar")
+    public ResponseEntity<List<FactorResponse>> buscar(
+            @RequestBody FactorBuscarRequest request) {
+        return ResponseEntity.ok(factorService.buscarConteniendo(request)
+                .stream().map(FactorResponse::desde).toList());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<FactorResponse> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(FactorResponse.desde(factorService.buscarPorId(id)));

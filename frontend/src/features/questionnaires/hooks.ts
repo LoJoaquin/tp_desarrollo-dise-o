@@ -1,8 +1,17 @@
 "use client";
-import { useApiMutation } from "@/shared/api/hooks";
+import { useServiceAction } from "@/shared/hooks/use-service-action";
 import { accessQuestionnaire, finishQuestionnaireBlock, savePartialAnswers } from "./service";
 import type { SaveQuestionnaireAnswersRequest } from "./types";
 
-export const useQuestionnaireAccess = () => useApiMutation((candidateId: number) => accessQuestionnaire(candidateId));
-export const useSavePartialAnswers = () => useApiMutation(({ id, body }: { id: number; body: SaveQuestionnaireAnswersRequest }) => savePartialAnswers(id, body));
-export const useFinishQuestionnaireBlock = () => useApiMutation(({ id, body }: { id: number; body: SaveQuestionnaireAnswersRequest }) => finishQuestionnaireBlock(id, body));
+export const useQuestionnaireAccess = () =>
+  useServiceAction(({ token, claveIngreso }: { token: string; claveIngreso: string }) =>
+    accessQuestionnaire(token, claveIngreso),
+  );
+export const useSavePartialAnswers = () =>
+  useServiceAction(({ token, id, body }: { token: string; id: number; body: SaveQuestionnaireAnswersRequest }) =>
+    savePartialAnswers(token, id, body),
+  );
+export const useFinishQuestionnaireBlock = () =>
+  useServiceAction(({ token, id, body }: { token: string; id: number; body: SaveQuestionnaireAnswersRequest }) =>
+    finishQuestionnaireBlock(token, id, body),
+  );

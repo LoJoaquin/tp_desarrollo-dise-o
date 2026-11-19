@@ -21,6 +21,19 @@ public class OpcionRespuestaController {
         return ResponseEntity.ok(service.listarActivasComoResponse());
     }
 
+    @PostMapping("/buscar")
+    public ResponseEntity<List<OpcionRespuestaResponse>> buscarPorNombre(
+            @RequestBody OpcionRespuestaBuscarRequest request) {
+        if (request == null) {
+            throw com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud(
+                    "Debe enviar los criterios de búsqueda"
+            );
+        }
+        return ResponseEntity.ok(
+                service.buscarActivasPorNombreConteniendo(request.nombre())
+        );
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<OpcionRespuestaResponse> buscar(
             @PathVariable Long id) {

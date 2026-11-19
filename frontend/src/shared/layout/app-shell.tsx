@@ -47,6 +47,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             return <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={item.logout ? () => {
+                  sessionStorage.removeItem("candidate-session");
+                  sessionStorage.removeItem("consultant-session");
+                } : undefined}
                 aria-current={active ? "page" : undefined}
                 className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${item.logout ? "mt-5 border-t border-[var(--color-border)] pt-4 text-red-700 hover:bg-red-50" : active ? "bg-[var(--color-brand-soft)] text-[var(--color-brand)]" : "text-slate-700 hover:bg-[var(--color-brand-soft)] hover:text-[var(--color-brand)]"}`}
               >{item.label}</Link>

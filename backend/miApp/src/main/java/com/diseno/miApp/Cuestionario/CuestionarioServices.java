@@ -3,6 +3,7 @@ package com.diseno.miApp.Cuestionario;
 import com.diseno.miApp.Candidato.Candidato;
 import com.diseno.miApp.EstadoCuestionario.EstadoCuestionario;
 import com.diseno.miApp.Puesto.Puesto;
+import com.diseno.miApp.ModeloCuestionario.ModeloCuestionario;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,12 +81,16 @@ public class CuestionarioServices {
     @Transactional
     public List<Cuestionario> crearCuestionarios(
             List<Candidato> candidatos,
-            Puesto puesto) {
+            Puesto puesto,
+            ModeloCuestionario modelo) {
         if (candidatos == null || candidatos.isEmpty()) {
             throw errorSolicitud("Debe seleccionar al menos un candidato");
         }
         if (puesto == null || puesto.getId() == null) {
             throw errorSolicitud("Debe indicar el puesto de la evaluación");
+        }
+        if (modelo == null || modelo.getId() == null) {
+            throw errorSolicitud("Debe indicar el modelo congelado de la evaluación");
         }
 
         LocalDateTime ahora = LocalDateTime.now();
@@ -95,6 +100,7 @@ public class CuestionarioServices {
             Cuestionario cuestionario = new Cuestionario();
             cuestionario.setCandidato(candidato);
             cuestionario.setPuesto(puesto);
+            cuestionario.setModelo(modelo);
             cuestionario.setEstadoCuestionario(EstadoCuestionario.ACTIVO);
             cuestionario.setClaveIngreso(generarClaveIngreso());
             cuestionario.setFechaCreacion(ahora);

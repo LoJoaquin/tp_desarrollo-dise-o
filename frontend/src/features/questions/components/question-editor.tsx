@@ -2,15 +2,14 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as questionService from "@/features/questions/service";
+import { useCreateQuestion, useUpdateQuestion } from "@/features/questions/hooks";
 import type { Question, CreateQuestionRequest, UpdateQuestionRequest } from "@/features/questions/types";
-import * as competencyService from "@/features/competencies/service";
+import { useCompetencies } from "@/features/competencies/hooks";
 import type { Competency } from "@/features/competencies/types";
-import * as factorService from "@/features/factors/service";
+import { useFactors } from "@/features/factors/hooks";
 import type { Factor } from "@/features/factors/types";
-import * as optionService from "@/features/answer-options/service";
+import { useAnswerOptions } from "@/features/answer-options/hooks";
 import type { AnswerOption } from "@/features/answer-options/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, SelectField, TextAreaField, ValidationSummary } from "@/shared/ui";
 
 type EditorMode = "create" | "update";
@@ -23,7 +22,6 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
   const [factors, setFactors] = useState<Factor[]>([]);
   const [options, setOptions] = useState<AnswerOption[]>([]);
   const [loadingReferences, setLoadingReferences] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [form, setForm] = useState<FormValues>(() => question ? {
     competenciaId: String(question.factor?.competencia?.id ?? ""),
     factorId: String(question.factor?.id ?? ""),
@@ -37,19 +35,28 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
   const [showAiNotice, setShowAiNotice] = useState(false);
   const [createdName, setCreatedName] = useState<string | null>(null);
   const [updateDone, setUpdateDone] = useState(false);
-  const action = useAction();
+  const competencyList = useCompetencies();
+  const factorList = useFactors();
+  const optionList = useAnswerOptions();
+  const createQuestion = useCreateQuestion();
+  const updateQuestion = useUpdateQuestion();
 
   useEffect(() => {
-    Promise.all([
-      competencyService.listCompetencies(),
-      factorService.listFactors(),
-      optionService.listAnswerOptions(),
-    ]).then(([competencyRows, factorRows, optionRows]) => {
-      setCompetencies(competencyRows);
-      setFactors(factorRows);
-      setOptions(optionRows);
-    }).catch(setLoadError).finally(() => setLoadingReferences(false));
-  }, []);
+    let mounted = true;
+    async function load() {
+      const [competencyRows, factorRows, optionRows] = await Promise.all([
+        competencyList.execute(undefined),
+        factorList.execute(undefined),
+        optionList.execute(undefined),
+      ]);
+      if (mounted && competencyRows) setCompetencies(competencyRows);
+      if (mounted && factorRows) setFactors(factorRows);
+      if (mounted && optionRows) setOptions(optionRows);
+      if (mounted) setLoadingReferences(false);
+    }
+    void load();
+    return () => { mounted = false; };
+  }, [competencyList.execute, factorList.execute, optionList.execute]);
 
   const selectedOption = useMemo(() => {
     const selectedId = Number(form.opcionId);
@@ -127,7 +134,7 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
           ponderacion: Number(weights[detail.id]),
         })),
       };
-      const created = await action.run(() => questionService.createQuestion(body));
+      const created = await createQuestion.execute(body);
       if (created) setCreatedName(created.name);
       return;
     }
@@ -147,7 +154,7 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
         })),
       } : {}),
     };
-    const updated = await action.run(() => questionService.updateQuestion(question.id, body));
+    const updated = await updateQuestion.execute({ id: question.id, body });
     if (updated) setUpdateDone(true);
   }
 
@@ -155,7 +162,7 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
     setCreatedName(null);
     setForm(emptyForm);
     setWeights({});
-    action.clear();
+    createQuestion.clear();
   }
 
   const isUpdate = mode === "update";
@@ -177,7 +184,9 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
     <PageHeader eyebrow={isUpdate ? "CU022 · Modificación" : "CU021 · Alta"} title={title} description={isUpdate ? "Competencia y factor son de solo lectura. Modificá los demás datos y confirmá." : "Completá los datos y asociá una ponderación a cada detalle de la opción de respuesta."} />
     <Panel title={title} description="Los textos literales se guardan en mayúsculas, según el caso de uso.">
       {loadingReferences ? <LoadingState label="Cargando competencias, factores y opciones…" /> : <form noValidate className="grid gap-5" onSubmit={submit}>
-        <ErrorMessage error={loadError} />
+        <ErrorMessage error={competencyList.error} />
+        <ErrorMessage error={factorList.error} />
+        <ErrorMessage error={optionList.error} />
         {isUpdate ? <div className="grid gap-4 sm:grid-cols-2"><Field label="Competencia (solo lectura)" readOnly value={question?.factor?.competencia?.nombre ?? ""} /><Field label="Factor (solo lectura)" readOnly value={question?.factor?.nombre ?? ""} /></div> : <div className="grid gap-4 sm:grid-cols-2"><SelectField label="Competencia *" value={form.competenciaId} onChange={(event) => { setForm({ ...form, competenciaId: event.target.value, factorId: "" }); setValidationErrors([]); }}><option value="">Seleccionar…</option>{competencies.filter((item) => item.estaActivo).map((item) => <option value={item.id} key={item.id}>{item.nombre}</option>)}</SelectField><SelectField label="Factor *" value={form.factorId} disabled={!form.competenciaId} onChange={(event) => { setForm({ ...form, factorId: event.target.value }); setValidationErrors([]); }}><option value="">Seleccionar…</option>{activeFactors.map((item) => <option value={item.id} key={item.id}>{item.nombre}</option>)}</SelectField></div>}
         <Field label="Nombre de pregunta *" value={form.nombre} onChange={(event) => updateText("nombre", event.target.value)} />
         <TextAreaField label="Pregunta *" value={form.textoPregunta} onChange={(event) => updateText("textoPregunta", event.target.value)} />
@@ -187,8 +196,10 @@ export function QuestionEditor({ mode, question }: { mode: EditorMode; question?
         {isUpdate && <Notice tone="info">La modificación puede cambiar el nombre, texto, descripción y opción. Si cambiás la opción, tenés que ponderar todos sus detalles y sumar 10. La API actual no permite borrar una descripción existente con un valor vacío.</Notice>}
         {showAiNotice && <Notice tone="warning" title="Generación con IA no disponible">El CU033 todavía no tiene endpoint en el backend. Podés completar la pregunta manualmente.</Notice>}
         <ValidationSummary errors={validationErrors} />
-        <ErrorMessage error={action.error} />{action.success && <Notice tone="success">{action.success}</Notice>}
-        <div className="flex flex-wrap justify-between gap-3"><div className="flex flex-wrap gap-2">{!isUpdate && <Button type="button" variant="secondary" onClick={() => setShowAiNotice(true)}>Generar con IA</Button>}<Button type="button" variant="secondary" onClick={() => router.push("/administracion/preguntas")}>Cancelar</Button></div><Button type="submit" disabled={action.isPending}>{action.isPending ? "Guardando…" : "Aceptar"}</Button></div>
+        <ErrorMessage error={createQuestion.error} />
+        <ErrorMessage error={updateQuestion.error} />
+        {(createQuestion.success || updateQuestion.success) && <Notice tone="success">{createQuestion.success || updateQuestion.success}</Notice>}
+        <div className="flex flex-wrap justify-between gap-3"><div className="flex flex-wrap gap-2">{!isUpdate && <Button type="button" variant="secondary" onClick={() => setShowAiNotice(true)}>Generar con IA</Button>}<Button type="button" variant="secondary" onClick={() => router.push("/administracion/preguntas")}>Cancelar</Button></div><Button type="submit" disabled={createQuestion.isPending || updateQuestion.isPending}>{createQuestion.isPending || updateQuestion.isPending ? "Guardando…" : "Aceptar"}</Button></div>
         <p className="text-xs text-slate-500">CU021 · Enter confirma el botón principal. Shift+Tab permite volver al campo anterior.</p>
       </form>}
     </Panel>

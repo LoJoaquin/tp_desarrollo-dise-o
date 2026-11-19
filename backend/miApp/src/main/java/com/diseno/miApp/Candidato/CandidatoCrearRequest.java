@@ -34,6 +34,10 @@ public class CandidatoCrearRequest {
     @Size(max = 255, message = "El número de documento no puede superar 255 caracteres")
     private String numeroDocumento;
 
+    @NotBlank(message = "La contraseña provisoria es obligatoria")
+    @Size(min = 4, max = 255, message = "La contraseña debe tener entre 4 y 255 caracteres")
+    private String contrasenia;
+
     @PastOrPresent(message = "La fecha de nacimiento no puede ser futura")
     private LocalDate fechaNacimiento;
     @NotNull(message = "El género es obligatorio")
@@ -105,6 +109,14 @@ public class CandidatoCrearRequest {
 
     public void setNumeroDocumento(String numeroDocumento) {
         this.numeroDocumento = numeroDocumento;
+    }
+
+    public String getContrasenia() {
+        return contrasenia;
+    }
+
+    public void setContrasenia(String contrasenia) {
+        this.contrasenia = contrasenia;
     }
 
     public void setTipoDocumento(TipoDocumento tipoDocumento) {

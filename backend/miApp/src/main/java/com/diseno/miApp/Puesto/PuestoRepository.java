@@ -19,4 +19,16 @@ public interface PuestoRepository extends JpaRepository<Puesto,Long> {
             @Param("nombre") String nombre,
             @Param("empresa") String empresa
     );
+
+    @Query("""
+    SELECT p FROM Puesto p LEFT JOIN FETCH p.empresa
+    WHERE (:codigo IS NULL OR p.codigo LIKE :codigo)
+      AND (:nombre IS NULL OR p.nombre LIKE :nombre)
+      AND (:empresa IS NULL OR p.empresa.nombre LIKE :empresa)
+""")
+    List<Puesto> buscarPuestoPorCodigoNombreYEmpresaConteniendo(
+            @Param("codigo") String codigo,
+            @Param("nombre") String nombre,
+            @Param("empresa") String empresa
+    );
 }

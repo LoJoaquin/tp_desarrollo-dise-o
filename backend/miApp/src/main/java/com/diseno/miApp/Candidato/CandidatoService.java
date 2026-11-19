@@ -6,13 +6,13 @@ import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.List;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorConflicto;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasOpcional;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -32,19 +32,26 @@ public class CandidatoService {
 
         Candidato candidato = new Candidato();
       //Validaciones
-        candidato.setNumeroCandidato(normalizarNumeroCandidato(request.getNumeroCandidato()));
-        String nombre = request.getNombre().trim();
-        String apellido = request.getApellido().trim();
+        candidato.setNumeroCandidato(normalizarMayusculasObligatorio(
+                request.getNumeroCandidato(),
+                "El número de candidato es obligatorio",
+                50
+        ));
+        String nombre = normalizarMayusculasObligatorio(
+                request.getNombre(), "El nombre es obligatorio");
+        String apellido = normalizarMayusculasObligatorio(
+                request.getApellido(), "El apellido es obligatorio");
         validarNombreYApellidoUnicos(nombre, apellido, null);
         candidato.setNombre(nombre);
         candidato.setApellido(apellido);
         candidato.setTipoDocumento(request.getTipoDocumento());
         candidato.setNumeroDocumento(request.getNumeroDocumento());
+        candidato.setContrasenia(request.getContrasenia());
         candidato.setFechaNacimiento(request.getFechaNacimiento());
         candidato.setGenero(request.getGenero());
         candidato.setNacionalidad(request.getNacionalidad());
-        candidato.setEmail(request.getEmail());
-        candidato.setEscolaridad(request.getEscolaridad());
+        candidato.setEmail(normalizarMayusculasOpcional(request.getEmail()));
+        candidato.setEscolaridad(normalizarMayusculasOpcional(request.getEscolaridad()));
         candidato.setEstaActivo(true);
         candidato.setCreatedAt(LocalDateTime.now());
 
@@ -78,32 +85,31 @@ public class CandidatoService {
             );
         }
 
-        String nombreNormalizado = normalizarTextoOpcional(nombre);
-        String apellidoNormalizado = normalizarTextoOpcional(apellido);
-        String numeroCandidatoNormalizado =
-                normalizarTextoOpcional(numeroCandidato);
+        String nombreBusqueda = normalizarMayusculasOpcional(nombre);
+        String apellidoBusqueda = normalizarMayusculasOpcional(apellido);
+        String numeroCandidatoBusqueda = normalizarMayusculasOpcional(numeroCandidato);
 
         Specification<Candidato> criterios = (root, query, cb) -> {
             List<Predicate> filtros = new ArrayList<>();
 
-            if (numeroCandidatoNormalizado != null) {
+            if (numeroCandidatoBusqueda != null) {
                 filtros.add(cb.equal(
-                        cb.lower(root.<String>get("numeroCandidato")),
-                        numeroCandidatoNormalizado.toLowerCase(Locale.ROOT)
+                        root.<String>get("numeroCandidato"),
+                        numeroCandidatoBusqueda
                 ));
             }
 
-            if (nombreNormalizado != null) {
+            if (nombreBusqueda != null) {
                 filtros.add(cb.like(
-                        cb.lower(root.<String>get("nombre")),
-                        "%" + nombreNormalizado.toLowerCase(Locale.ROOT) + "%"
+                        root.<String>get("nombre"),
+                        "%" + nombreBusqueda + "%"
                 ));
             }
 
-            if (apellidoNormalizado != null) {
+            if (apellidoBusqueda != null) {
                 filtros.add(cb.like(
-                        cb.lower(root.<String>get("apellido")),
-                        "%" + apellidoNormalizado.toLowerCase(Locale.ROOT) + "%"
+                        root.<String>get("apellido"),
+                        "%" + apellidoBusqueda + "%"
                 ));
             }
 
@@ -127,22 +133,29 @@ public class CandidatoService {
         Candidato candidato = candidatoRepository.findById(id)
                 .orElseThrow(() -> errorNoEncontrado("Candidato no encontrado"));
 
-        String nombre = request.getNombre().trim();
-        String apellido = request.getApellido().trim();
+        String nombre = normalizarMayusculasObligatorio(
+                request.getNombre(), "El nombre es obligatorio");
+        String apellido = normalizarMayusculasObligatorio(
+                request.getApellido(), "El apellido es obligatorio");
         validarNombreYApellidoUnicos(nombre, apellido, id);
         candidato.setNombre(nombre);
         candidato.setApellido(apellido);
-        if (request.getNumeroCandidato() == null || request.getNumeroCandidato().isBlank()) {
-            throw errorSolicitud("El número de candidato es obligatorio");
-        }
-        candidato.setNumeroCandidato(normalizarNumeroCandidato(request.getNumeroCandidato()));
+        candidato.setNumeroCandidato(normalizarMayusculasObligatorio(
+                request.getNumeroCandidato(),
+                "El número de candidato es obligatorio",
+                50
+        ));
         candidato.setTipoDocumento(request.getTipoDocumento());
         candidato.setNumeroDocumento(request.getNumeroDocumento());
+        if (request.getContrasenia() != null
+                && !request.getContrasenia().isBlank()) {
+            candidato.setContrasenia(request.getContrasenia());
+        }
         candidato.setFechaNacimiento(request.getFechaNacimiento());
         candidato.setGenero(request.getGenero());
         candidato.setNacionalidad(request.getNacionalidad());
-        candidato.setEmail(request.getEmail());
-        candidato.setEscolaridad(request.getEscolaridad());
+        candidato.setEmail(normalizarMayusculasOpcional(request.getEmail()));
+        candidato.setEscolaridad(normalizarMayusculasOpcional(request.getEscolaridad()));
         candidato.setUpdatedAt(LocalDateTime.now());
 
         return candidatoRepository.save(candidato);
@@ -153,14 +166,6 @@ public class CandidatoService {
 
         return candidatoRepository.findById(id)
                 .orElseThrow(() -> errorNoEncontrado("Candidato no encontrado"));
-    }
-
-    private String normalizarNumeroCandidato(String numeroCandidato) {
-        String normalizado = numeroCandidato.trim().toUpperCase(Locale.ROOT);
-        if (normalizado.length() > 50) {
-            throw errorSolicitud("El número de candidato no puede superar 50 caracteres");
-        }
-        return normalizado;
     }
 
     private void validarNombreYApellidoUnicos(

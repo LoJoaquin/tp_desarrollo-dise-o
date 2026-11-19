@@ -4,6 +4,7 @@ import com.diseno.miApp.Candidato.Candidato;
 import com.diseno.miApp.EstadoCuestionario.EstadoCuestionario;
 
 import com.diseno.miApp.Puesto.Puesto;
+import com.diseno.miApp.ModeloCuestionario.ModeloCuestionario;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -38,6 +39,10 @@ public class Cuestionario {
     @ManyToOne
     @JoinColumn(name="puesto_id")
     private Puesto puesto;
+
+    @ManyToOne
+    @JoinColumn(name = "modelo_cuestionario_id")
+    private ModeloCuestionario modelo;
 
 
 

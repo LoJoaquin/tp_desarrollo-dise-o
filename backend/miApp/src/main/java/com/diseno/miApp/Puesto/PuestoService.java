@@ -8,8 +8,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoOpcional;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.patronContieneOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.validarAlMenosUnCriterio;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
 
@@ -50,9 +53,12 @@ public class PuestoService {
 
         Puesto puesto = new Puesto();
 
-        puesto.setCodigo(request.getCodigo());
-        puesto.setNombre(request.getNombre());
-        puesto.setDescripcion(request.getDescripcion());
+        puesto.setCodigo(normalizarMayusculasObligatorio(
+                request.getCodigo(), "El código del puesto es obligatorio"));
+        puesto.setNombre(normalizarMayusculasObligatorio(
+                request.getNombre(), "El nombre del puesto es obligatorio"));
+        puesto.setDescripcion(
+                normalizarMayusculasOpcional(request.getDescripcion()));
         puesto.setEmpresa(empresa);
         puesto.setEstaActiva(true);
 
@@ -80,9 +86,9 @@ public class PuestoService {
             );
         }
 
-        String codigo = normalizarTextoOpcional(request.getCodigo());
-        String nombre = normalizarTextoOpcional(request.getNombre());
-        String empresa = normalizarTextoOpcional(request.getEmpresa());
+        String codigo = normalizarMayusculasOpcional(request.getCodigo());
+        String nombre = normalizarMayusculasOpcional(request.getNombre());
+        String empresa = normalizarMayusculasOpcional(request.getEmpresa());
 
         if (codigo == null && nombre == null && empresa == null) {
             throw errorSolicitud(
@@ -94,6 +100,33 @@ public class PuestoService {
                 codigo, nombre, empresa
         );
     }
+
+    public List<Puesto> buscarPuestosConteniendo(PuestoRequest request) {
+        if (request == null) {
+            throw errorSolicitud(
+                    "Debe ingresar al menos un criterio de búsqueda"
+            );
+        }
+
+        String codigo = patronContieneOpcional(request.getCodigo());
+        String nombre = patronContieneOpcional(request.getNombre());
+        String empresa = patronContieneOpcional(request.getEmpresa());
+
+        validarAlMenosUnCriterio(
+                "Debe ingresar al menos un criterio de búsqueda",
+                codigo,
+                nombre,
+                empresa
+        );
+
+        return puestoRepository
+                .buscarPuestoPorCodigoNombreYEmpresaConteniendo(
+                        codigo,
+                        nombre,
+                        empresa
+                );
+    }
+
     public Puesto modificarPuesto(
             Long id,
             PuestoModificarRequest request,
@@ -107,8 +140,9 @@ public class PuestoService {
             );
         }
 
-        String nombre = normalizarTextoOpcional(request.getNombre());
-        String descripcion = normalizarTextoOpcional(request.getDescripcion());
+        String nombre = normalizarMayusculasOpcional(request.getNombre());
+        String descripcion = normalizarMayusculasOpcional(
+                request.getDescripcion());
         boolean empresaSolicitada = request.getEmpresa() != null;
         boolean caracteristicasSolicitadas =
                 request.getCaracteristicasPuesto() != null;
@@ -121,7 +155,6 @@ public class PuestoService {
                     "Debe enviar al menos un campo con valor para modificar"
             );
         }
-
         Puesto puesto = buscarPorId(id);
 
         if (nombre != null) {

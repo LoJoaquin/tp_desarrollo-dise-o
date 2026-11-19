@@ -37,17 +37,47 @@ public final class ValidacionesHelper {
     public static String normalizarMayusculasOpcional(
             String texto,
             int longitudMaxima) {
-        if (texto == null || texto.isBlank()) {
-            return null;
-        }
-
-        String normalizado = texto.trim().toUpperCase(Locale.ROOT);
-        if (normalizado.length() > longitudMaxima) {
+        String normalizado = normalizarMayusculasOpcional(texto);
+        if (normalizado != null && normalizado.length() > longitudMaxima) {
             throw errorSolicitud(
                     "El texto excede la longitud máxima permitida"
             );
         }
+        return normalizado;
+    }
 
+    public static String normalizarMayusculasOpcional(String texto) {
+        if (texto == null || texto.isBlank()) {
+            return null;
+        }
+
+        return texto.trim().toUpperCase(Locale.ROOT);
+    }
+
+    public static String patronContieneOpcional(String texto) {
+        String normalizado = normalizarMayusculasOpcional(texto);
+        return normalizado == null ? null : "%" + normalizado + "%";
+    }
+
+    public static void validarAlMenosUnCriterio(
+            String mensaje,
+            Object... criterios) {
+        for (Object criterio : criterios) {
+            if (criterio != null) {
+                return;
+            }
+        }
+
+        throw errorSolicitud(mensaje);
+    }
+
+    public static String normalizarMayusculasObligatorio(
+            String texto,
+            String mensaje) {
+        String normalizado = normalizarMayusculasOpcional(texto);
+        if (normalizado == null) {
+            throw errorSolicitud(mensaje);
+        }
         return normalizado;
     }
 

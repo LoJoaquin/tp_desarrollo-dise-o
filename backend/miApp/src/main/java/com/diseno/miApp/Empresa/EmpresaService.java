@@ -6,8 +6,8 @@ import java.util.List;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoObligatorio;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasOpcional;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -25,7 +25,7 @@ public class EmpresaService {
             throw errorSolicitud("Debe enviar los datos de la empresa");
         }
 
-        String nombre = normalizarTextoObligatorio(
+        String nombre = normalizarMayusculasObligatorio(
                 request.getNombre(),
                 "El nombre de la empresa es obligatorio"
         );
@@ -42,6 +42,10 @@ public class EmpresaService {
                 .orElseThrow(() -> errorNoEncontrado("Empresa no encontrada"));
     }
 
+    public List<Empresa> listarTodas() {
+        return empresaRepository.listarTodas();
+    }
+
     // MODIFICAR
     public Empresa modificarEmpresa(
             Long id,
@@ -56,7 +60,10 @@ public class EmpresaService {
         Empresa empresa = empresaRepository.findById(id)
                 .orElseThrow(() -> errorNoEncontrado("Empresa no encontrada"));
 
-        empresa.setNombre(request.getNombre());
+        empresa.setNombre(normalizarMayusculasObligatorio(
+                request.getNombre(),
+                "El nombre de la empresa es obligatorio"
+        ));
 
         return empresaRepository.save(empresa);
     }
@@ -72,9 +79,9 @@ public class EmpresaService {
         }
 
         Long id = request.getId();
-        String nombre = normalizarTextoOpcional(request.getNombre());
+        String nombre = normalizarMayusculasOpcional(request.getNombre());
 
-        if (id == null && nombre == null) {
+        if (id == null && (nombre == null || nombre.isBlank())) {
             throw errorSolicitud(
                     "Debe ingresar ID o nombre para buscar empresas"
             );

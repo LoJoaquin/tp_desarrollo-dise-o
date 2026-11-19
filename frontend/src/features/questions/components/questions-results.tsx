@@ -1,54 +1,47 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as questionService from "@/features/questions/service";
+import { useDeleteQuestion, useQuestionSearch } from "@/features/questions/hooks";
 import type { Question } from "@/features/questions/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, DataTable, ErrorMessage, LoadingState, Notice, PageHeader, Panel } from "@/shared/ui";
 
 type Criteria = { competenciaId: string; factorId: string; nombre: string };
 
 export default function QuestionsResults({ criteria }: { criteria: Criteria }) {
   const router = useRouter();
-  const [allRows, setAllRows] = useState<Question[]>([]);
+  const [rows, setRows] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [removedName, setRemovedName] = useState("");
   const [auditMissing, setAuditMissing] = useState(false);
-  const action = useAction();
+  const searchQuestions = useQuestionSearch();
+  const deleteQuestion = useDeleteQuestion();
+
+  async function load() {
+    setLoading(true);
+    const result = await searchQuestions.execute({
+      competenciaId: criteria.competenciaId ? Number(criteria.competenciaId) : null,
+      factorId: criteria.factorId ? Number(criteria.factorId) : null,
+      nombrePregunta: criteria.nombre,
+    });
+    if (result) setRows(result.filter((question) => question.estaActivo !== false));
+    setLoading(false);
+  }
 
   useEffect(() => {
-    setLoading(true);
-    questionService.listQuestions()
-      .then((questions) => setAllRows(questions.filter((question) => question.estaActivo !== false)))
-      .catch(setLoadError)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const rows = useMemo(() => {
-    const nameNeedle = criteria.nombre.trim().toLocaleLowerCase("es-AR");
-    return allRows.filter((question) => {
-      const competencyMatches = !criteria.competenciaId || question.factor?.competencia?.id === Number(criteria.competenciaId);
-      const factorMatches = !criteria.factorId || question.factor?.id === Number(criteria.factorId);
-      const nameMatches = !nameNeedle || question.name.toLocaleLowerCase("es-AR").includes(nameNeedle);
-      return competencyMatches && factorMatches && nameMatches;
-    });
-  }, [allRows, criteria]);
+    void load();
+  }, [criteria.competenciaId, criteria.factorId, criteria.nombre]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const visibleRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
   async function remove(question: Question) {
     if (!window.confirm(`Los datos de la pregunta “${question.name}” serán eliminados del sistema. ¿Continuar?`)) return;
-    const result = await action.run(async () => {
-      await questionService.deleteQuestion(question.id);
-      return true;
-    });
+    const result = await deleteQuestion.execute(question.id);
     if (result) {
-      setAllRows((current) => current.filter((item) => item.id !== question.id));
+      setRows((current) => current.filter((item) => item.id !== question.id));
       setRemovedName(question.name);
       setAuditMissing(true);
     }
@@ -71,7 +64,7 @@ export default function QuestionsResults({ criteria }: { criteria: Criteria }) {
         <span>Mostrando {Math.min((page - 1) * pageSize + 1, rows.length)} a {Math.min(page * pageSize, rows.length)} de {rows.length} preguntas</span>
         <div className="flex items-center gap-2"><Button variant="secondary" disabled={page <= 1} onClick={() => setPage((current) => current - 1)}>Anterior</Button><span>Página {page} de {pageCount}</span><Button variant="secondary" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)}>Siguiente</Button><label className="ml-2">Mostrar <select className="ml-1 rounded border px-2 py-1" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1); }}><option value={5}>5</option><option value={10}>10</option><option value={20}>20</option></select></label></div>
       </div>}
-      <ErrorMessage error={loadError ?? action.error} />
+      <ErrorMessage error={searchQuestions.error ?? deleteQuestion.error} />
       {removedName && <Notice tone="success" title="Baja realizada">La pregunta “{removedName}” fue dada de baja. El backend todavía no registra la auditoría de usuario, fecha y hora requerida por el caso de uso.<Button className="ml-3" variant="secondary" onClick={() => { setRemovedName(""); setAuditMissing(false); }}>Aceptar</Button>{auditMissing && <span className="sr-only">Auditoría pendiente.</span>}</Notice>}
     </Panel>
   </>;

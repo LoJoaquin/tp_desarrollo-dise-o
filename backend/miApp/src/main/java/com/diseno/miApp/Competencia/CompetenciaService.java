@@ -6,7 +6,9 @@ import java.util.List;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasOpcional;
+import static com.diseno.miApp.helpers.ValidacionesHelper.patronContieneOpcional;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -34,6 +36,18 @@ public class CompetenciaService {
         return competenciaRepository.findAll();
     }
 
+    public List<Competencia> buscarConteniendo(
+            CompetenciaBuscarRequest request) {
+        if (request == null) {
+            throw errorSolicitud("Debe enviar los criterios de búsqueda");
+        }
+
+        String codigo = patronContieneOpcional(request.codigo());
+        String nombre = patronContieneOpcional(request.nombre());
+
+        return competenciaRepository.buscarConteniendo(codigo, nombre);
+    }
+
     public Competencia reactivarCompetencia(Long id) {
         Competencia competencia = buscarPorId(id);
         competencia.setEstaActivo(true);
@@ -45,23 +59,16 @@ public class CompetenciaService {
             throw errorSolicitud("Debe enviar los datos de la competencia");
         }
 
-        String codigo = normalizarTextoOpcional(request.getCodigo());
-        String nombre = normalizarTextoOpcional(request.getNombre());
-
-        if (codigo == null) {
-            throw errorSolicitud("El código es obligatorio");
-        }
-
-        if (nombre == null) {
-            throw errorSolicitud("El nombre es obligatorio");
-        }
+        String codigo = normalizarMayusculasObligatorio(
+                request.getCodigo(), "El código es obligatorio");
+        String nombre = normalizarMayusculasObligatorio(
+                request.getNombre(), "El nombre es obligatorio");
 
         Competencia competencia = new Competencia();
         competencia.setCodigo(codigo);
         competencia.setNombre(nombre);
         competencia.setDescripcion(
-                normalizarTextoOpcional(request.getDescripcion())
-        );
+                normalizarMayusculasOpcional(request.getDescripcion()));
         competencia.setEstaActivo(true);
 
         return competenciaRepository.save(competencia);
@@ -82,15 +89,15 @@ public class CompetenciaService {
             );
         }
 
-        String nombre = normalizarTextoOpcional(request.getNombre());
-        String descripcion = normalizarTextoOpcional(request.getDescripcion());
+        String nombre = normalizarMayusculasOpcional(request.getNombre());
+        String descripcion = normalizarMayusculasOpcional(
+                request.getDescripcion());
 
         if (nombre == null && descripcion == null) {
             throw errorSolicitud(
                     "Debe enviar al menos un campo con valor para modificar"
             );
         }
-
         Competencia competencia = buscarPorId(id);
 
         if (nombre != null) {

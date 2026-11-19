@@ -2,18 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/candidates/service";
+import { useCandidateSearch, useDeleteCandidate } from "@/features/candidates/hooks";
 import type { Candidate, SearchCandidatesRequest } from "@/features/candidates/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, DataTable, ErrorMessage, LoadingState, Notice, PageHeader, Panel } from "@/shared/ui";
 
 export default function CandidateResults({ criteria }: { criteria: SearchCandidatesRequest }) {
   const router = useRouter();
   const [allRows, setAllRows] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
-  const action = useAction();
-  async function load() { setLoading(true); const result = await action.run(() => service.searchCandidates(criteria)); if (result) setAllRows(result.filter((row) => row.estaActivo !== false)); setLoading(false); }
-  useEffect(() => { void load(); }, []);
+  const search = useCandidateSearch();
+  const deleteCandidate = useDeleteCandidate();
+  async function load() { setLoading(true); const result = await search.execute(criteria); if (result) setAllRows(result.filter((row) => row.estaActivo !== false)); setLoading(false); }
+  useEffect(() => { void load(); }, [criteria.numeroCandidato, criteria.nombre, criteria.apellido]);
   const rows = useMemo(() => allRows.filter((row) =>
     row.numeroCandidato.toLocaleLowerCase("es-AR").includes((criteria.numeroCandidato ?? "").toLocaleLowerCase("es-AR")) &&
     row.apellido.toLocaleLowerCase("es-AR").includes((criteria.apellido ?? "").toLocaleLowerCase("es-AR")) &&
@@ -24,7 +24,7 @@ export default function CandidateResults({ criteria }: { criteria: SearchCandida
   }
   async function remove(row: Candidate) {
     if (!window.confirm(`¿Dar de baja al candidato ${row.numeroCandidato}?`)) return;
-    const result = await action.run(async () => { await service.deleteCandidate(row.id); return true; }, "Candidato dado de baja.");
+    const result = await deleteCandidate.execute(row.id, "Candidato dado de baja.");
     if (result) setAllRows((current) => current.filter((item) => item.id !== row.id));
   }
   return <>
@@ -37,7 +37,7 @@ export default function CandidateResults({ criteria }: { criteria: SearchCandida
         { key: "documento", header: "Documento", render: (row) => [row.tipoDocumento, row.numeroDocumento].filter(Boolean).join(" ") || "—" },
         { key: "acciones", header: "Acciones", render: (row) => <div className="flex gap-2"><Button variant="secondary" onClick={() => edit(row)}>Modificar</Button><Button variant="danger" onClick={() => void remove(row)}>Eliminar</Button></div> },
       ]} emptyTitle="No se encontraron candidatos" emptyDescription="Volvé a la búsqueda y probá otros criterios." />}
-      <ErrorMessage error={action.error} />{action.success && <Notice tone="success">{action.success}</Notice>}
+      <ErrorMessage error={search.error ?? deleteCandidate.error} />{deleteCandidate.success && <Notice tone="success">{deleteCandidate.success}</Notice>}
     </Panel>
   </>;
 }

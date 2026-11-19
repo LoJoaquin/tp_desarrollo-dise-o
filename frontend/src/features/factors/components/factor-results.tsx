@@ -1,36 +1,43 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as service from "@/features/factors/service";
-import * as competencyService from "@/features/competencies/service";
+import { useCompetencies } from "@/features/competencies/hooks";
+import { useDeleteFactor, useFactorSearch, useReactivateFactor } from "@/features/factors/hooks";
 import type { Factor } from "@/features/factors/types";
 import type { Competency } from "@/features/competencies/types";
-import { useAction } from "@/shared/hooks/use-action";
 import { Button, DataTable, ErrorMessage, LoadingState, Notice, PageHeader, Panel } from "@/shared/ui";
 
 type Criteria = { competenciaId: string; codigo: string; nombre: string };
 export default function FactorResults({ criteria }: { criteria: Criteria }) {
   const router = useRouter();
-  const [allRows, setAllRows] = useState<Factor[]>([]);
+  const [rows, setRows] = useState<Factor[]>([]);
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [loading, setLoading] = useState(true);
-  const action = useAction();
+  const searchFactors = useFactorSearch();
+  const listCompetencies = useCompetencies();
+  const deleteFactor = useDeleteFactor();
+  const reactivateFactor = useReactivateFactor();
   async function load() {
     setLoading(true);
-    const [factorRows, competencyRows] = await Promise.all([action.run(() => service.listFactors()), action.run(() => competencyService.listCompetencies())]);
-    if (factorRows) setAllRows(factorRows);
+    const [factorRows, competencyRows] = await Promise.all([
+      searchFactors.execute({
+        competenciaId: criteria.competenciaId ? Number(criteria.competenciaId) : null,
+        codigo: criteria.codigo,
+        nombreFactor: criteria.nombre,
+      }),
+      listCompetencies.execute(undefined),
+    ]);
+    if (factorRows) setRows(factorRows);
     if (competencyRows) setCompetencies(competencyRows);
     setLoading(false);
   }
-  useEffect(() => { void load(); }, []);
-  const rows = useMemo(() => allRows.filter((row) =>
-    (!criteria.competenciaId || row.competenciaId === Number(criteria.competenciaId)) &&
-    row.codigo.toLocaleLowerCase("es-AR").includes(criteria.codigo.toLocaleLowerCase("es-AR")) &&
-    row.nombre.toLocaleLowerCase("es-AR").includes(criteria.nombre.toLocaleLowerCase("es-AR"))), [allRows, criteria]);
+  useEffect(() => { void load(); }, [criteria.competenciaId, criteria.codigo, criteria.nombre]);
   async function toggle(row: Factor) {
     if (row.estaActivo && !window.confirm(`¿Dar de baja el factor ${row.nombre}?`)) return;
-    const result = await action.run(async () => { if (row.estaActivo) await service.deleteFactor(row.id); else await service.reactivateFactor(row.id); return true; }, row.estaActivo ? "Factor dado de baja." : "Factor reactivado.");
+    const result = row.estaActivo
+      ? await deleteFactor.execute(row.id, "Factor dado de baja.")
+      : await reactivateFactor.execute(row.id, "Factor reactivado.");
     if (result) await load();
   }
   return <>
@@ -43,8 +50,8 @@ export default function FactorResults({ criteria }: { criteria: Criteria }) {
         { key: "orden", header: "Orden", render: (row) => row.nroOrden ?? "—" },
         { key: "acciones", header: "Acciones", render: (row) => <div className="flex gap-2"><Button variant="secondary" onClick={() => router.push(`/administracion/factores/${row.id}/modificar`)}>Modificar</Button><Button variant={row.estaActivo ? "danger" : "secondary"} onClick={() => void toggle(row)}>{row.estaActivo ? "Eliminar" : "Reactivar"}</Button></div> },
       ]} emptyTitle="No se encontraron factores" emptyDescription="Volvé a la búsqueda y probá otros criterios." />}
-      <ErrorMessage error={action.error} />
-      {action.success && <Notice tone="success">{action.success}</Notice>}
+      <ErrorMessage error={searchFactors.error ?? listCompetencies.error ?? deleteFactor.error ?? reactivateFactor.error} />
+      {(deleteFactor.success || reactivateFactor.success) && <Notice tone="success">{deleteFactor.success || reactivateFactor.success}</Notice>}
       <Notice tone="warning" title="Auditoría pendiente">El caso de uso requiere registrar quién dio de baja el factor y en qué fecha/hora; esa auditoría no está implementada en el backend.</Notice>
     </Panel>
   </>;

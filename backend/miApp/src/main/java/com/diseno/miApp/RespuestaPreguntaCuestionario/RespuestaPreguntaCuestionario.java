@@ -1,8 +1,8 @@
 package com.diseno.miApp.RespuestaPreguntaCuestionario;
 
 import com.diseno.miApp.Cuestionario.Cuestionario;
-import com.diseno.miApp.DetalleOpcionRespuesta.DetalleOpcionRespuesta;
-import com.diseno.miApp.Pregunta.Pregunta;
+import com.diseno.miApp.ModeloCuestionario.ModeloOpcion;
+import com.diseno.miApp.ModeloCuestionario.ModeloPregunta;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,11 +20,11 @@ public class RespuestaPreguntaCuestionario {
     @JoinColumn(name= "cuestionario_id")
     private Cuestionario cuestionario;
     @ManyToOne
-    @JoinColumn(name= "pregunta_id")
-    private Pregunta pregunta;
+    @JoinColumn(name= "modelo_pregunta_id")
+    private ModeloPregunta pregunta;
     @ManyToOne
-    @JoinColumn(name= "detalle_opcion_respuesta_id")
-    private DetalleOpcionRespuesta detalleOpcionRespuesta;
+    @JoinColumn(name= "modelo_opcion_id")
+    private ModeloOpcion opcionSeleccionada;
     private LocalDate fechaRespuesta;
 
 

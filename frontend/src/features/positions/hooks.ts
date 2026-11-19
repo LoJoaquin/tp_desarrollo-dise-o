@@ -1,13 +1,39 @@
 "use client";
-import { useApiMutation, useApiQuery } from "@/shared/api/hooks";
+
+import { useServiceAction } from "@/shared/hooks/use-service-action";
 import * as service from "./service";
 import type { CreatePositionRequest, SearchPositionsRequest, UpdatePositionRequest } from "./types";
 
-export const usePositions = () => useApiQuery(service.listPositions);
-export const usePosition = (id: number) => useApiQuery(() => service.getPosition(id), [id]);
-export const usePositionCharacteristics = (id: number) => useApiQuery(() => service.getPositionCharacteristics(id), [id]);
-export const usePositionSearch = (criteria: SearchPositionsRequest) => useApiQuery(() => service.searchPositions(criteria), [criteria.codigo, criteria.nombre, criteria.empresa]);
-export const useCreatePosition = () => useApiMutation((body: CreatePositionRequest) => service.createPosition(body));
-export const useUpdatePosition = () => useApiMutation(({ id, body }: { id: number; body: UpdatePositionRequest }) => service.updatePosition(id, body));
-export const useReactivatePosition = () => useApiMutation((id: number) => service.reactivatePosition(id));
-export const useDeletePosition = () => useApiMutation((id: number) => service.deletePosition(id));
+export const usePositions = () =>
+  useServiceAction<void, Awaited<ReturnType<typeof service.listPositions>>>(
+    () => service.listPositions(),
+  );
+
+export const usePosition = () =>
+  useServiceAction((id: number) => service.getPosition(id));
+
+export const usePositionCharacteristics = () =>
+  useServiceAction((id: number) => service.getPositionCharacteristics(id));
+
+export const usePositionSearch = () =>
+  useServiceAction((criteria: SearchPositionsRequest) => service.searchPositions(criteria));
+
+export const useCreatePosition = () =>
+  useServiceAction((body: CreatePositionRequest) => service.createPosition(body));
+
+export const useUpdatePosition = () =>
+  useServiceAction(({ id, body }: { id: number; body: UpdatePositionRequest }) =>
+    service.updatePosition(id, body),
+  );
+
+export const useReactivatePosition = () =>
+  useServiceAction(async (id: number) => {
+    await service.reactivatePosition(id);
+    return true;
+  });
+
+export const useDeletePosition = () =>
+  useServiceAction(async (id: number) => {
+    await service.deletePosition(id);
+    return true;
+  });

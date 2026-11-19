@@ -1,0 +1,727 @@
+@startuml
+
+class Consultor {
+    - id : Long
+    - nombre : String
+    - apellido : String
+    - email : String
+    - contrasenia : String
+    - isActive : Boolean
+}
+
+class Candidato {
+    - id : Long
+    - nombre : String
+    - apellido : String
+    - tipoDocumento : TipoDocumento
+    - nroDocumento : String
+    - fechaNacimiento : LocalDate
+    - genero : Genero
+    - nacionalidad : Nacionalidad
+    - email : String
+    - escolaridad : String
+    - isActivo : Boolean
+    - createdAt : LocalDateTime
+    - updatedAt : LocalDateTime
+}
+
+class Empresa {
+    - id : Long
+    - nombre : String
+}
+
+class Puesto {
+    - id : Long
+    - código : String
+    - nombre : String
+    - descripcion : String
+    - empresaId : Long
+    - estaActivo : Boolean
+}
+
+class CaracteristicaPuesto {
+    - id : Long
+    - puestoId : Long
+    - competenciaId : Long
+    - ponderacionRequerida : Integer
+}
+
+class Competencia {
+    - id : Long
+    - codigo : String
+    - nombre : String
+    - descripcion : String
+    - estaActiva : Boolean
+}
+
+class Factor {
+    - id : Long
+    - codigo : String
+    - nombre : String
+    - descripcion : String
+    - competenciaId : Long
+    - nroOrden : Integer
+    - estaActivo : Boolean
+}
+
+class Pregunta {
+    - id : Long
+    - factorId : Long
+    - nombre : String
+    - textoPregunta : String
+    - descripción : String
+    - isActive : Boolean
+    - opcionRespuestaId : Long
+}
+
+class OpcionRespuesta {
+    - id : Long
+    - nombre : String
+    - descripción : String
+}
+
+class DetalleOpcionRespuesta {
+    - id : Long
+    - opcionRespuestaId : Long
+    - descripción : String
+    - ordenVisualizacion : Integer
+}
+
+class PreguntaOpcionPonderacion {
+    - id : Long
+    - preguntaId : Long
+    - detalleOpcionRespuestaId : Long
+    - ponderación : Integer
+}
+
+class Cuestionario {
+    - id : Long
+    - candidatoId : Long
+    - puestoId : Long
+    - estado : EstadoCuestionario
+    - claveIngreso : String
+    - fechaCreacion : LocalDateTime
+    - fechaInicio : LocalDateTime
+    - fechaRealizacion : LocalDateTime
+    - fechaLimiteActivo : LocalDateTime
+    - fechaLimiteFinalizacion : LocalDateTime
+    - ultimoIngreso : LocalDateTime
+    - cantidadAccesos : Integer
+    - fechaCambioEstado : LocalDateTime
+}
+
+class CuestionarioPregunta {
+    - id : Long
+    - cuestionarioId : Long
+    - preguntaId : Long
+    - bloque : Integer
+    - orden : Integer
+}
+
+class RespuestaCuestionario {
+    - id : Long
+    - cuestionarioId : Long
+    - preguntaId : Long
+    - detalleOpcionRespuestaId : Long
+    - fechaRespuesta : LocalDate
+}
+
+class ResultadoCompetencia {
+    - id : Long
+    - cuestionarioId : Long
+    - competenciaId : Long
+    - puntajeObtenido : Float
+}
+
+class AutenticarCandidatoRequest <<DTO>> {
+    - tipo : TipoDocumento
+    - documento : String
+    - clave : String
+}
+
+class AutenticarConsultorRequest <<DTO>> {
+    - String nombreUsuario;
+    - String contrasenia;
+}
+
+class CandidatoCrearRequest <<DTO>> {
+    - nombre : String
+    - apellido : String
+    - tipoDocumento : TipoDocumento
+    - fechaNacimiento : LocalDate
+    - genero : Genero
+    - nacionalidad : Nacionalidad
+    - email : String
+    - escolaridad : String
+    - createdAt : LocalDateTime
+}
+
+class CandidatoCrearResponse <<DTO>> {
+    - nombre : String
+    - apellido : String
+    - tipoDocumento : TipoDocumento
+    - fechaNacimiento : LocalDate
+    - genero : Genero
+    - nacionalidad : Nacionalidad
+    - email : String
+    - escolaridad : String
+}
+
+class BuscarCandidatoEvaluarCandidatoRequest <<DTO>> {
+    - nombre : String
+    - apellido : String
+    - id : Long
+}
+
+class BuscarPuestoEvaluarCandidatoRequest <<DTO>> {
+    - nombrePuesto : String
+    - codigo : String
+    - nombreEmpresa : String
+}
+
+class BuscarPuestoEvaluarCandidatoResponse <<DTO>> {
+    - nombrePuesto : String
+    - nombreEmpresa : String
+    - competenciasRequeridas : ArrayList<CompetenciaRequeridaDTO>
+}
+
+class CompetenciaRequeridaDTO <<DTO>> {
+    - nombreCompetencia : String
+    - ponderacion : Integer
+}
+
+class EvaluarCandidatoRequest <<DTO>> {
+    - idCandidato : ArrayList<Long>
+    - idPuesto : Long
+}
+
+class EvaluarCandidatoResponse <<DTO>> {
+    - apellido : String
+    - nombre : String
+    - tipoDocumento : TipoDocumento
+    - numeroDocumento : String
+    - claveIngreso : String
+}
+
+class BuscarFactorRequest <<DTO>> {
+    - nombreFactor : String
+    - nombreCompetencia : String
+}
+
+class PuestoCrearRequest <<DTO>> {
+    - codigo : String
+    - nombre : String
+    - descripcion : String
+    - empresa : Empresa
+    - caracteristicasPuesto : List<CaracteristicasPuesto>
+}
+
+class PuestoEliminarRequest <<DTO>> {
+    - id : Long
+}
+
+class GuardarRespuestasRequest <<DTO>> {
+    - cuestionarioId : Long
+    - respuestas : List<RespuestaPreguntaDTO>
+}
+
+class RespuestaPreguntaDTO <<DTO>> {
+    - preguntaId : Long
+    - detalleOpcionRespuestaId : Long
+}
+
+class PuestoModificarRequest <<DTO>> {
+    - codigo : String
+    - nombre : String
+    - nombreEmpresa : String
+}
+
+class busquedaCompetenciaRequest <<DTO>> {
+    - String nombre
+}
+
+class busquedaCompetenciaResponse <<DTO>> {
+    - String nombre
+    - String codigo
+}
+
+class altaCompetenciaRequest <<DTO>> {
+    - String codigo
+    - String nombre
+    - String Descripcion
+}
+
+class modificarCompetenciaRequest <<DTO>> {
+    - String nombre
+    - String Descripcion
+}
+
+class bajaCompetencia <<DTO>> {
+    - Long id
+}
+
+class altaFactor <<DTO>> {
+    - String codigo
+    - String nombre
+    - String descripción
+    - Competencia competencia
+    - Integer nroOrden
+}
+
+class modificarFactor <<DTO>> {
+    - String nombre
+    - String descripción
+    - Competencia competencia
+    - Integer nroOrden
+}
+
+class bajaFactor <<DTO>> {
+    - Long id
+}
+
+class gestionarPreguntasRequest <<DTO>> {
+    - Competencia competencia
+    - Factor factor
+    - String name
+}
+
+class gestionarPreguntasResponse <<DTO>> {
+    - Competencia competencia
+    - Factor factor
+    - Pregunta pregunta
+}
+
+class altaPregunta <<DTO>> {
+    - Competencia competencia
+    - Factor factor
+    - String name
+    - String textoPregunta
+    - string Descripcion
+    - OpcionRespuesta opcionRespuesta
+}
+
+class modificarPregunta <<DTO>> {
+    - String name
+    - String textoPregunta
+    - string Descripcion
+    - OpcionRespuesta opcionRespuesta
+}
+
+class bajaPregunta <<DTO>> {
+    - Long id
+}
+
+class gestionarOpcionesPreguntasRequest <<DTO>> {
+    - String name
+}
+
+class gestionarOpcionesPreguntasResponse <<DTO>> {
+    - String name
+    - string Descripcion
+}
+
+class generarPreguntaIARequest <<DTO>> {
+    - Factor factor
+    - Competencia competencia
+}
+
+class generarPreguntaIAResponse <<DTO>> {
+    - String nombrePregunta
+    - Pregunta pregunta
+    - String textoPregunta
+    - OpcionRespuesta opcionRespuesta
+}
+
+class altaRespuesta <<DTO>> {
+    - String nombre
+    - String descripción
+    - OpcionRespuesta opciones[]
+}
+
+class modificarRespuesta <<DTO>> {
+    - String descripción
+}
+
+class bajaRespuesta <<DTO>> {
+    - Long id
+}
+
+class exportarResultadoRequest {
+    - String nombreFuncion
+    - Empresa empresa
+    - LocalDateTime fechaInicioFin
+}
+
+class exportarResultadoResponse {
+    - String nombre
+    - String apellido
+    - TipoDocumento tipoDocumento
+    - String nroDocumento
+    - String nroCandidato
+    - LocalDateTime fechaFinalizacion
+}
+
+enum EstadoCuestionario {
+    ACTIVO
+    EN_PROCESO
+    COMPLETO
+    INCOMPLETO
+    SIN_CONTESTAR
+}
+
+enum Genero {
+    FEMENINO
+    MASCULINO
+}
+
+enum Nacionalidad {
+}
+
+enum TipoDocumento {
+}
+
+class CuestionarioResponse <<DTO>> {
+    - cuestionarioId : Long
+    - bloques : List<BloqueDTO>
+}
+
+class BloqueDTO <<DTO>> {
+    - numero : Integer
+    - preguntas : List<PreguntaCuestionarioDTO>
+}
+
+class PreguntaCuestionarioDTO <<DTO>> {
+    - preguntaId : Long
+    - orden : Integer
+    - textoPregunta : String
+    - opciones : List<OpcionCuestionarioDTO>
+}
+
+class OpcionCuestionarioDTO <<DTO>> {
+    - detalleOpcionRespuestaId : Long
+    - descripcion : String
+    - ordenVisualizacion : Integer
+}
+
+class AutenticadorService {
+    + autenticarConsultor(request : AutenticarConsultorRequest) : AutenticarConsultorResponse
+    + autenticarCandidato(request : AutenticarCandidatoRequest) : AutenticarCandidatoResponse
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+class EvaluacionController {
+    + evaluarCandidatos(request : EvaluarCandidatoRequest) : EvaluarCandidatoResponse
+    + generarCuestionarios(request : GenerarCuestionariosRequest) : GenerarCuestionariosResponse
+    + generarClaveIngreso(request : GenerarClaveIngresoRequest) : GenerarClaveIngresoResponse
+}
+
+class CuestionarioService {
+    + completarCuestionario(request : CompletarCuestionarioRequest) : CuestionarioResponse
+    + guardarRespuesta(request : GuardarRespuestasRequest) : GuardarRespuestasResponse
+    + calcularResultados(request : CalcularResultadosRequest) : CalcularResultadosResponse
+    + finalizarCuestionariosVencidos(request : FinalizarCuestionariosVencidosRequest) : FinalizarCuestionariosVencidosResponse
+}
+
+class ReporteController {
+    + emitirReporteComparativo(request : ReporteComparativoRequest) : ReporteComparativoResponse
+    + emitirOrdenMerito(request : EmitirOrdenMeritoRequest) : EmitirOrdenMeritoResponse
+    + exportarResultados(request : ExportarResultadoRequest) : ExportarResultadoResponse
+}
+
+class BuscarCandidatosEvaluadosRequest <<DTO>> {
+    - Long idPuesto
+}
+
+class BuscarCandidatosEvaluadosResponse <<DTO>> {
+    - Long nroCandidato
+    - String apellido
+    - String nombre
+    - TipoDocumento tipoDocumento
+    - String documento
+    - LocalDate fechaFinalizacion
+}
+
+class ReporteComparativoRequest <<DTO>> {
+    - Long idPuesto
+    - Long idCandidato
+}
+
+class DetalleComparativoDTO <<DTO>> {
+    - String nombreCompetencia
+    - Integer puntajeRequerido
+    - Float puntajeObtenido
+}
+
+class ReporteComparativoResponse <<DTO>> {
+    - String nombrePuesto
+    - String nombreCandidato
+    - String apellidoCandidato
+    - List<DetalleComparativoDTO> detalleCompetencias
+}
+
+AutenticadorService ..> AutenticarCandidatoRequest
+AutenticadorService ..> AutenticarConsultorRequest
+
+
+
+EvaluacionController ..> EvaluarCandidatoRequest
+EvaluacionController ..> EvaluarCandidatoResponse
+EvaluacionController ..> Candidato
+EvaluacionController ..> Puesto
+EvaluacionController ..> Cuestionario
+EvaluacionController ..> CuestionarioPregunta
+EvaluacionController ..> Pregunta
+
+
+
+
+ReporteController ..> exportarResultadoRequest
+ReporteController ..> exportarResultadoResponse
+ReporteController ..> ReporteComparativoRequest
+ReporteController ..> ReporteComparativoResponse
+ReporteController ..> Candidato
+ReporteController ..> Puesto
+ReporteController ..> CaracteristicaPuesto
+ReporteController ..> Cuestionario
+ReporteController ..> ResultadoCompetencia
+ReporteController ..> Competencia
+
+
+CuestionarioService ..> CuestionarioPregunta
+CuestionarioService ..> RespuestaCuestionario
+CuestionarioService ..> ResultadoCompetencia
+CuestionarioService ..> EstadoCuestionario
+CuestionarioService ..> CuestionarioResponse
+CuestionarioService ..> GuardarRespuestasRequest
+
+CuestionarioResponse "1" *-- "1..*" BloqueDTO
+BloqueDTO "1" *-- "1..*" PreguntaCuestionarioDTO
+PreguntaCuestionarioDTO "1" *-- "1..*" OpcionCuestionarioDTO
+
+Empresa "1" o-- "0..*" Puesto
+Puesto "1" -- "1.." CaracteristicaPuesto
+CaracteristicaPuesto "0..*" --> "1" Competencia
+Competencia "1" -- "1.." Factor
+Factor "1" -- "0.." Pregunta
+Pregunta "0..*" --> "1" OpcionRespuesta
+OpcionRespuesta "1" -- "1.." DetalleOpcionRespuesta
+Pregunta "1" -- "1.." PreguntaOpcionPonderacion
+PreguntaOpcionPonderacion "0..*" --> "1" DetalleOpcionRespuesta
+Candidato "1" -- "0..*" Cuestionario : completa >
+Puesto "1" -- "0..*" Cuestionario
+Cuestionario "1" -- "1.." CuestionarioPregunta
+CuestionarioPregunta "0..*" --> "1" Pregunta
+Cuestionario "1" -- "0.." RespuestaCuestionario
+RespuestaCuestionario "0..*" --> "1" Pregunta
+RespuestaCuestionario "0..*" --> "1" DetalleOpcionRespuesta
+Cuestionario "1" -- "0.." ResultadoCompetencia
+ResultadoCompetencia "0..*" --> "1" Competencia
+
+Cuestionario --> EstadoCuestionario
+Candidato --> Genero
+Candidato --> Nacionalidad
+Candidato --> TipoDocumento
+
+GuardarRespuestasRequest "1" *-- "1..*" RespuestaPreguntaDTO
+ReporteComparativoResponse "1" -- "0.." DetalleComparativoDTO
+
+class PuestoServices {
+    + buscarPuestos(request : BuscarPuestoEvaluarCandidatoRequest) : BuscarPuestoEvaluarCandidatoResponse
+    + crearPuesto(request : PuestoCrearRequest) : PuestoCrearResponse
+    + modificarPuesto(request : PuestoModificarRequest) : PuestoModificarResponse
+    + darBajaPuesto(request : PuestoEliminarRequest) : PuestoEliminarResponse
+}
+
+interface PuestoRepository {
+    + findAll() : List<Puesto>
+    + findById(id : Long) : Puesto
+    + modificar(puesto : Puesto) : Puesto
+    + create(puesto : Puesto) : Puesto
+    + delete(id : Long) : void
+}
+
+PuestoServices ..> PuestoRepository
+PuestoRepository ..> Puesto
+PuestoServices ..> PuestoCrearRequest
+PuestoServices ..> PuestoModificarRequest
+PuestoServices ..> PuestoEliminarRequest
+PuestoServices ..> BuscarPuestoEvaluarCandidatoResponse
+PuestoServices ..> CompetenciaRequeridaDTO
+PuestoServices ..> BuscarPuestoEvaluarCandidatoRequest
+
+
+class OpcionRespuestaServices {
+    + crearOpcionRespuesta(request : altaRespuesta) : altaRespuesta
+    + modificarOpcionRespuesta(request : modificarRespuesta) : modificarRespuesta
+    + darBajaOpcionRespuesta(request : bajaRespuesta) : bajaRespuesta
+}
+
+interface OpcionRespuestaRepository {
+    + findAll() : List<OpcionRespuesta>
+    + findById(id : Long) : OpcionRespuesta
+    + modificar(opcionRespuesta : OpcionRespuesta) : OpcionRespuesta
+    + create(opcionRespuesta : OpcionRespuesta) : OpcionRespuesta
+    + delete(id : Long) : void
+}
+
+OpcionRespuestaServices ..> OpcionRespuestaRepository
+
+OpcionRespuestaRepository ..> OpcionRespuesta
+
+OpcionRespuestaServices ..> altaRespuesta
+OpcionRespuestaServices ..> modificarRespuesta
+OpcionRespuestaServices ..> bajaRespuesta
+class PreguntaServices {
+    + buscarPreguntas(request : gestionarPreguntasRequest) : gestionarPreguntasResponse
+    + crearPregunta(request : altaPregunta) : altaPregunta
+    + modificarPregunta(request : modificarPregunta) : modificarPregunta
+    + darBajaPregunta(request : bajaPregunta) : bajaPregunta
+    + generarPreguntaConIA(request : generarPreguntaIARequest) : generarPreguntaIAResponse
+}
+
+interface PreguntaRepository {
+    + findAll() : List<Pregunta>
+    + findById(id : Long) : Pregunta
+    + modificar(pregunta : Pregunta) : Pregunta
+    + create(pregunta : Pregunta) : Pregunta
+    + delete(id : Long) : void
+}
+
+PreguntaServices ..> PreguntaRepository
+
+PreguntaRepository ..> Pregunta
+
+PreguntaServices ..> gestionarPreguntasRequest
+PreguntaServices ..> gestionarPreguntasResponse
+PreguntaServices ..> altaPregunta
+PreguntaServices ..> modificarPregunta
+PreguntaServices ..> bajaPregunta
+PreguntaServices ..> generarPreguntaIARequest
+PreguntaServices ..> generarPreguntaIAResponse
+class FactorServices {
+    + buscarFactores(request : BuscarFactorRequest) : BuscarFactorRequest
+    + crearFactor(request : altaFactor) : altaFactor
+    + modificarFactor(request : modificarFactor) : modificarFactor
+    + darBajaFactor(request : bajaFactor) : bajaFactor
+}
+
+interface FactorRepository {
+    + findAll() : List<Factor>
+    + findById(id : Long) : Factor
+    + modificar(factor : Factor) : Factor
+    + create(factor : Factor) : Factor
+    + delete(id : Long) : void
+}
+
+FactorServices ..> FactorRepository
+
+FactorRepository ..> Factor
+
+FactorServices ..> BuscarFactorRequest
+FactorServices ..> altaFactor
+FactorServices ..> modificarFactor
+FactorServices ..> bajaFactor
+class CompetenciaServices {
+    + buscarCompetencias(request : busquedaCompetenciaRequest) : busquedaCompetenciaResponse
+    + crearCompetencia(request : altaCompetenciaRequest) : altaCompetenciaRequest
+    + modificarCompetencia(request : modificarCompetenciaRequest) : modificarCompetenciaRequest
+    + darBajaCompetencia(request : bajaCompetencia) : bajaCompetencia
+}
+
+interface CompetenciaRepository {
+    + findAll() : List<Competencia>
+    + findById(id : Long) : Competencia
+    + modificar(competencia : Competencia) : Competencia
+    + create(competencia : Competencia) : Competencia
+    + delete(id : Long) : void
+}
+
+CompetenciaServices ..> CompetenciaRepository
+
+CompetenciaRepository ..> Competencia
+
+CompetenciaServices ..> busquedaCompetenciaRequest
+CompetenciaServices ..> busquedaCompetenciaResponse
+CompetenciaServices ..> altaCompetenciaRequest
+CompetenciaServices ..> modificarCompetenciaRequest
+CompetenciaServices ..> bajaCompetencia
+class CandidatoServices {
+    + crearCandidato(request : CandidatoCrearRequest) : CandidatoCrearResponse
+    + modificarCandidato(id : Long, request : CandidatoCrearRequest) : CandidatoCrearResponse
+    + darBajaCandidato(id : Long) : void
+    + buscarCandidatos(request : BuscarCandidatoEvaluarCandidatoRequest) : List<Candidato>
+    + importarCandidatos(rutaArchivoCSV : String) : void
+    + buscarCandidatoCuestionarioFinalizado(request : BuscarCandidatosEvaluadosRequest) : BuscarCandidatosEvaluadosResponse
+}
+
+interface CandidatoRepository {
+    + findAll() : List<Candidato>
+    + findById(id : Long) : Candidato
+    + modificar(candidato : Candidato) : Candidato
+    + create(candidato : Candidato) : Candidato
+    + delete(id : Long) : void
+}
+
+CandidatoServices ..> CandidatoRepository
+
+CandidatoRepository ..> Candidato
+
+CandidatoServices ..> CandidatoCrearRequest
+CandidatoServices ..> CandidatoCrearResponse
+CandidatoServices ..> BuscarCandidatoEvaluarCandidatoRequest
+CandidatoServices ..> BuscarCandidatosEvaluadosRequest
+CandidatoServices ..> BuscarCandidatosEvaluadosResponse
+class EmpresaServices {
+    + crearEmpresa(request : CrearEmpresaRequest) : CrearEmpresaResponse
+    + modificarEmpresa(request : ModificarEmpresaRequest) : ModificarEmpresaResponse
+    + buscarEmpresas(request : BuscarEmpresasRequest) : BuscarEmpresasResponse
+}
+
+interface EmpresaRepository {
+    + findAll() : List<Empresa>
+    + findById(id : Long) : Empresa
+    + modificar(empresa : Empresa) : Empresa
+    + create(empresa : Empresa) : Empresa
+    + delete(id : Long) : void
+}
+
+EmpresaServices ..> EmpresaRepository
+
+EmpresaRepository ..> Empresa
+
+EmpresaServices ..> CrearEmpresaRequest
+EmpresaServices ..> CrearEmpresaResponse
+EmpresaServices ..> ModificarEmpresaRequest
+EmpresaServices ..> ModificarEmpresaResponse
+EmpresaServices ..> BuscarEmpresasRequest
+EmpresaServices ..> BuscarEmpresasResponse
+interface RespuestaRepository {
+    + guardar(respuesta : RespuestaCuestionario) : RespuestaCuestionario
+}
+
+CuestionarioService ..> RespuestaRepository
+
+RespuestaRepository ..> RespuestaCuestionario
+interface CuestionarioRepository {
+    + findAll() : List<Cuestionario>
+    + findById(id : Long) : Cuestionario
+    + modificar(cuestionario : Cuestionario) : Cuestionario
+    + create(cuestionario : Cuestionario) : Cuestionario
+    + delete(id : Long) : void
+}
+
+CuestionarioService ..> CuestionarioRepository
+
+CuestionarioRepository ..> Cuestionario
+@enduml

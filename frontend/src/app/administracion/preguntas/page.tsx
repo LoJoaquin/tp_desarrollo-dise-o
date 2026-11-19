@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import * as competencyService from "@/features/competencies/service";
-import * as factorService from "@/features/factors/service";
+import { useCompetencies } from "@/features/competencies/hooks";
+import { useFactors } from "@/features/factors/hooks";
 import type { Competency } from "@/features/competencies/types";
 import type { Factor } from "@/features/factors/types";
 import { Button, ErrorMessage, Field, LoadingState, Notice, PageHeader, Panel, SelectField } from "@/shared/ui";
@@ -16,15 +16,20 @@ export default function QuestionsManagementPage() {
   const [factorId, setFactorId] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
   const [validation, setValidation] = useState("");
+  const competencyList = useCompetencies();
+  const factorList = useFactors();
 
   useEffect(() => {
-    Promise.all([competencyService.listCompetencies(), factorService.listFactors()])
-      .then(([competencyRows, factorRows]) => { setCompetencies(competencyRows); setFactors(factorRows); })
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, []);
+    let mounted = true;
+    Promise.all([competencyList.execute(undefined), factorList.execute(undefined)])
+      .then(([competencyRows, factorRows]) => {
+        if (mounted && competencyRows) setCompetencies(competencyRows);
+        if (mounted && factorRows) setFactors(factorRows);
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [competencyList.execute, factorList.execute]);
 
   function search(event: FormEvent) {
     event.preventDefault();
@@ -39,7 +44,7 @@ export default function QuestionsManagementPage() {
     router.push(`/administracion/preguntas/resultados?${query.toString()}`);
   }
 
-  function clear() { setCompetencyId(""); setFactorId(""); setName(""); setValidation(""); setError(null); }
+  function clear() { setCompetencyId(""); setFactorId(""); setName(""); setValidation(""); competencyList.clear(); factorList.clear(); }
   const availableFactors = factors.filter((factor) => !competencyId || factor.competenciaId === Number(competencyId));
 
   return <>
@@ -62,7 +67,8 @@ export default function QuestionsManagementPage() {
         </div>
       </form>}
       {validation && <Notice tone="error">{validation}</Notice>}
-      <ErrorMessage error={error} />
+      <ErrorMessage error={competencyList.error} />
+      <ErrorMessage error={factorList.error} />
     </Panel>
     {!loading && <Notice title="Búsqueda de preguntas">Completá al menos un filtro y presioná “Buscar” para ver los resultados. También podés crear una nueva pregunta con “Nueva pregunta”.</Notice>}
   </>;

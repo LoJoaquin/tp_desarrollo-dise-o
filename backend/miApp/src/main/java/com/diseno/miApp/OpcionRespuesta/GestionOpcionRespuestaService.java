@@ -13,7 +13,7 @@ import static com.diseno.miApp.helpers.ManejoErroresHelper.ejecutarConMensajeDeE
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorConflicto;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorNoEncontrado;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
-import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarTextoObligatorio;
+import static com.diseno.miApp.helpers.ValidacionesHelper.normalizarMayusculasObligatorio;
 import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 
 @Service
@@ -45,6 +45,14 @@ public class GestionOpcionRespuestaService {
                 .toList();
     }
 
+    public List<OpcionRespuestaResponse> buscarActivasPorNombreConteniendo(
+            String nombre) {
+        return opcionService.buscarActivasPorNombreConteniendo(nombre)
+                .stream()
+                .map(this::aResponse)
+                .toList();
+    }
+
     public OpcionRespuestaResponse buscarRespuestaPorId(Long id) {
         return aResponse(buscarOpcion(
                 id,
@@ -67,11 +75,11 @@ public class GestionOpcionRespuestaService {
             );
         }
 
-        String nombre = normalizarTextoObligatorio(
+        String nombre = normalizarMayusculasObligatorio(
                 request.nombre(),
                 "El nombre es obligatorio"
         );
-        String descripcion = normalizarTextoObligatorio(
+        String descripcion = normalizarMayusculasObligatorio(
                 request.descripcion(),
                 "La descripción es obligatoria"
         );
@@ -121,7 +129,7 @@ public class GestionOpcionRespuestaService {
         );
 
         if (request.descripcion() != null) {
-            opcion.setDescripcion(normalizarTextoObligatorio(
+            opcion.setDescripcion(normalizarMayusculasObligatorio(
                     request.descripcion(),
                     "La descripción no puede estar vacía"
             ));

@@ -1,7 +1,11 @@
 "use client";
-import { useApiMutation } from "@/shared/api/hooks";
+
+import { useServiceAction } from "@/shared/hooks/use-service-action";
 import { loginCandidate, loginConsultant } from "./service";
 import type { CandidateLoginRequest, ConsultantLoginRequest } from "./types";
 
-export const useCandidateLogin = () => useApiMutation((body: CandidateLoginRequest) => loginCandidate(body));
-export const useConsultantLogin = () => useApiMutation((body: ConsultantLoginRequest) => loginConsultant(body));
+export const useCandidateLogin = () =>
+  useServiceAction((body: CandidateLoginRequest) => loginCandidate(body));
+
+export const useConsultantLogin = () =>
+  useServiceAction((body: ConsultantLoginRequest) => loginConsultant(body));

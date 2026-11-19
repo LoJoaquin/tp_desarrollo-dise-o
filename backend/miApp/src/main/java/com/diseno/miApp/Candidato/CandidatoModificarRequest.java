@@ -47,6 +47,9 @@ public class CandidatoModificarRequest {
     @Size(max = 255, message = "La escolaridad no puede superar 255 caracteres")
     private String escolaridad;
 
+    @Size(min = 4, max = 255, message = "La contraseña debe tener entre 4 y 255 caracteres")
+    private String contrasenia;
+
     public String getNombre() {
         return nombre;
     }
@@ -125,6 +128,14 @@ public class CandidatoModificarRequest {
 
     public void setEscolaridad(String escolaridad) {
         this.escolaridad = escolaridad;
+    }
+
+    public String getContrasenia() {
+        return contrasenia;
+    }
+
+    public void setContrasenia(String contrasenia) {
+        this.contrasenia = contrasenia;
     }
 
     public CandidatoModificarRequest(LocalDate fechaNacimiento, String nombre, String apellido, TipoDocumento tipoDocumento, Genero genero, Nacionalidad nacionalidad, String email, String escolaridad) {
