@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCompanySearch } from "@/features/companies/hooks";
 import type { Company, SearchCompaniesRequest } from "@/features/companies/types";
-import { Button, DataTable, ErrorMessage, LoadingState, Notice, PageHeader, Panel } from "@/shared/ui";
+import { Button, DataTable, ErrorMessage, LoadingState, PageHeader, Panel } from "@/shared/ui";
 
 export default function CompanyResults({ criteria }: { criteria: SearchCompaniesRequest }) {
   const router = useRouter();
@@ -26,13 +26,9 @@ export default function CompanyResults({ criteria }: { criteria: SearchCompanies
       {loading ? <LoadingState label="Buscando empresas…" /> : <DataTable rows={rows} rowKey={(row) => row.id} columns={[
         { key: "id", header: "ID", render: (row) => row.id },
         { key: "nombre", header: "Empresa", render: (row) => row.nombre },
-        { key: "acciones", header: "Acciones", render: (row) => <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => router.push(`/administracion/empresas/${row.id}/modificar`)}>Modificar</Button>
-          <Button variant="danger" disabled title="La API no tiene endpoint de baja">Eliminar</Button>
-        </div> },
+        { key: "acciones", header: "Acciones", render: (row) => <Button variant="secondary" onClick={() => router.push(`/administracion/empresas/${row.id}/modificar`)}>Modificar</Button> },
       ]} emptyTitle="No se encontraron empresas" emptyDescription="Volvé a la búsqueda y probá otros criterios." />}
       <ErrorMessage error={searchCompanies.error} />
-      <Notice tone="warning" title="Eliminación no disponible">El backend no expone una operación para dar de baja empresas. Por eso “Eliminar” aparece deshabilitado.</Notice>
     </Panel>
   </>;
 }

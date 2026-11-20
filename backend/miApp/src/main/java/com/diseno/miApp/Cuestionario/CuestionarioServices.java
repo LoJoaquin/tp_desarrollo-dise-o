@@ -5,6 +5,7 @@ import com.diseno.miApp.EstadoCuestionario.EstadoCuestionario;
 import com.diseno.miApp.Puesto.Puesto;
 import com.diseno.miApp.ModeloCuestionario.ModeloCuestionario;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.stream.IntStream;
 
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorConflicto;
 import static com.diseno.miApp.helpers.ManejoErroresHelper.errorSolicitud;
@@ -31,13 +33,16 @@ public class CuestionarioServices {
     private static final int LONGITUD_CLAVE = 8;
 
     private final CuestionarioRepository cuestionarioRepository;
+    private final PasswordEncoder passwordEncoder;
     private final Duration plazoActivo;
     private final SecureRandom random = new SecureRandom();
 
     public CuestionarioServices(
             CuestionarioRepository cuestionarioRepository,
+            PasswordEncoder passwordEncoder,
             @Value("${cuestionario.plazo-activo}") Duration plazoActivo) {
         this.cuestionarioRepository = cuestionarioRepository;
+        this.passwordEncoder = passwordEncoder;
         this.plazoActivo = plazoActivo;
     }
 
@@ -79,7 +84,7 @@ public class CuestionarioServices {
     }
 
     @Transactional
-    public List<Cuestionario> crearCuestionarios(
+    public List<CuestionarioCreado> crearCuestionarios(
             List<Candidato> candidatos,
             Puesto puesto,
             ModeloCuestionario modelo) {
@@ -95,6 +100,7 @@ public class CuestionarioServices {
 
         LocalDateTime ahora = LocalDateTime.now();
         List<Cuestionario> nuevos = new ArrayList<>();
+        List<String> clavesEnClaro = new ArrayList<>();
 
         for (Candidato candidato : candidatos) {
             Cuestionario cuestionario = new Cuestionario();
@@ -102,7 +108,9 @@ public class CuestionarioServices {
             cuestionario.setPuesto(puesto);
             cuestionario.setModelo(modelo);
             cuestionario.setEstadoCuestionario(EstadoCuestionario.ACTIVO);
-            cuestionario.setClaveIngreso(generarClaveIngreso());
+            String claveEnClaro = generarClaveIngreso();
+            clavesEnClaro.add(claveEnClaro);
+            cuestionario.setClaveIngreso(passwordEncoder.encode(claveEnClaro));
             cuestionario.setFechaCreacion(ahora);
             cuestionario.setFechaLimiteActivo(ahora.plus(plazoActivo));
             cuestionario.setFechaCambioEstado(ahora);
@@ -113,7 +121,11 @@ public class CuestionarioServices {
         // uk_cuestionario_candidato_abierto es la última defensa ante
         // solicitudes simultáneas. Si falla una inserción, la transacción
         // revierte la creación del lote completo.
-        return cuestionarioRepository.saveAll(nuevos);
+        List<Cuestionario> guardados = cuestionarioRepository.saveAll(nuevos);
+        return IntStream.range(0, guardados.size())
+                .mapToObj(indice -> new CuestionarioCreado(
+                        guardados.get(indice), clavesEnClaro.get(indice)))
+                .toList();
     }
 
     private String generarClaveIngreso() {

@@ -2,6 +2,7 @@ package com.diseno.miApp.Candidato;
 
 import org.springframework.stereotype.Service;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDateTime;
@@ -19,15 +20,23 @@ import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 public class CandidatoService {
 
     private final CandidatoRepository candidatoRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public CandidatoService(CandidatoRepository candidatoRepository) {
+    public CandidatoService(
+            CandidatoRepository candidatoRepository,
+            PasswordEncoder passwordEncoder) {
         this.candidatoRepository = candidatoRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public CandidatoCrearResponse crearCandidato(CandidatoCrearRequest request) {
         if (request == null || request.getNumeroCandidato() == null
                 || request.getNumeroCandidato().isBlank()) {
             throw errorSolicitud("El número de candidato es obligatorio");
+        }
+        if (request.getContrasenia() == null
+                || request.getContrasenia().isBlank()) {
+            throw errorSolicitud("La contraseña provisoria es obligatoria");
         }
 
         Candidato candidato = new Candidato();
@@ -46,7 +55,7 @@ public class CandidatoService {
         candidato.setApellido(apellido);
         candidato.setTipoDocumento(request.getTipoDocumento());
         candidato.setNumeroDocumento(request.getNumeroDocumento());
-        candidato.setContrasenia(request.getContrasenia());
+        candidato.setContrasenia(passwordEncoder.encode(request.getContrasenia()));
         candidato.setFechaNacimiento(request.getFechaNacimiento());
         candidato.setGenero(request.getGenero());
         candidato.setNacionalidad(request.getNacionalidad());
@@ -149,7 +158,7 @@ public class CandidatoService {
         candidato.setNumeroDocumento(request.getNumeroDocumento());
         if (request.getContrasenia() != null
                 && !request.getContrasenia().isBlank()) {
-            candidato.setContrasenia(request.getContrasenia());
+            candidato.setContrasenia(passwordEncoder.encode(request.getContrasenia()));
         }
         candidato.setFechaNacimiento(request.getFechaNacimiento());
         candidato.setGenero(request.getGenero());

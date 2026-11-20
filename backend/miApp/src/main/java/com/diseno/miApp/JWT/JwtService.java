@@ -1,8 +1,9 @@
 package com.diseno.miApp.JWT;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -12,43 +13,40 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY =
-            "esta-es-una-clave-super-secreta-de-minimo-32-caracteres";
+    private static final long DURACION_TOKEN_MS = 1000L * 60 * 60 * 24;
+    private static final String CLAIM_PERFIL = "perfil";
+    private final String secretKey;
 
-    public String generarToken(String email) {
+    public JwtService(@Value("${seguridad.jwt.secret}") String secretKey) {
+        if (secretKey == null || secretKey.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException(
+                    "JWT_SECRET debe tener al menos 32 bytes"
+            );
+        }
+        this.secretKey = secretKey;
+    }
+
+    public String generarToken(Long idCandidato) {
         return Jwts.builder()
-                .subject(email)
+                .subject(idCandidato.toString())
+                .claim(CLAIM_PERFIL, "CANDIDATO")
                 .issuedAt(new Date())
-                // Debe superar el plazo máximo para completar el cuestionario.
-                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24))
+                .expiration(new Date(System.currentTimeMillis() + DURACION_TOKEN_MS))
                 .signWith(getKey())
                 .compact();
     }
 
-    public Long obtenerIdCandidato(String authorization) {
-        if (authorization == null || !authorization.startsWith("Bearer ")) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED,
-                    "La sesión del candidato no es válida");
-        }
-        try {
-            String subject = Jwts.parser()
-                    .verifyWith(getKey())
-                    .build()
-                    .parseSignedClaims(authorization.substring(7))
-                    .getPayload()
-                    .getSubject();
-            return Long.valueOf(subject);
-        } catch (JwtException | IllegalArgumentException error) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.UNAUTHORIZED,
-                    "La sesión del candidato venció o no es válida");
-        }
+    public Claims validarToken(String token) {
+        return Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     private SecretKey getKey() {
         return Keys.hmacShaKeyFor(
-                SECRET_KEY.getBytes(StandardCharsets.UTF_8)
+                secretKey.getBytes(StandardCharsets.UTF_8)
         );
     }
 }

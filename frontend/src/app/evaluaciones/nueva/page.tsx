@@ -1,217 +1,47 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useConfirmEvaluation, useSearchCandidatesForEvaluation, useValidateCandidateSelection, useVerifyEvaluationPosition } from "@/features/evaluations/hooks";
-import type { EvaluationCandidate, EvaluationPosition, RequiredCompetency, ConfirmedEvaluation } from "@/features/evaluations/types";
-import { Button, DataTable, ErrorMessage, Field, Notice, PageHeader, Panel, SelectField, ValidationSummary } from "@/shared/ui";
+import { useRouter } from "next/navigation";
+import { useSearchCandidatesForEvaluation } from "@/features/evaluations/hooks";
+import { clearEvaluationFlow, writeEvaluationFlow } from "@/features/evaluations/flow";
+import type { SearchEvaluationCandidatesRequest } from "@/features/evaluations/types";
+import { appRoutes } from "@/shared/navigation/routes";
+import { Button, ErrorMessage, Field, PageHeader, Panel, ValidationSummary } from "@/shared/ui";
 
 export default function NewEvaluationPage() {
-  const [criteria, setCriteria] = useState({ apellido: "", nombre: "", numeroCandidato: "" });
-  const [criteriaError, setCriteriaError] = useState<string[]>([]);
-  const [matches, setMatches] = useState<EvaluationCandidate[]>([]);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [searched, setSearched] = useState(false);
-  const [selectionChecked, setSelectionChecked] = useState(false);
-  const [positions, setPositions] = useState<EvaluationPosition[]>([]);
-  const [positionId, setPositionId] = useState("");
-  const [competencies, setCompetencies] = useState<RequiredCompetency[] | null>(null);
-  const [confirmed, setConfirmed] = useState<ConfirmedEvaluation[] | null>(null);
+  const router = useRouter();
+  const [criteria, setCriteria] = useState<SearchEvaluationCandidatesRequest>({ apellido: "", nombre: "", numeroCandidato: "" });
+  const [validation, setValidation] = useState<string[]>([]);
   const searchAction = useSearchCandidatesForEvaluation();
-  const selectionAction = useValidateCandidateSelection();
-  const positionAction = useVerifyEvaluationPosition();
-  const confirmAction = useConfirmEvaluation();
-  const pending = searchAction.isPending || selectionAction.isPending || positionAction.isPending || confirmAction.isPending;
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const hasCriteria = Object.values(criteria).some((value) => value.trim().length > 0);
-    if (!hasCriteria) {
-      setCriteriaError(["Completá al menos un criterio de búsqueda."]);
+    if (!Object.values(criteria).some((value) => value?.trim())) {
+      setValidation(["Completá al menos un criterio de búsqueda."]);
       return;
     }
-
-    setCriteriaError([]);
-    setSearched(true);
-    setMatches([]);
-    setSelected([]);
-    setPositions([]);
-    setSelectionChecked(false);
-    setPositionId("");
-    setCompetencies(null);
-    setConfirmed(null);
-    searchAction.clear();
-
-    const result = await searchAction.execute(criteria);
-    if (result) setMatches(result);
-  }
-
-  async function continueSelection() {
-    selectionAction.clear();
-    const result = await selectionAction.execute(
-      { idsCandidatos: selected },
-      "Selección validada.",
-    );
-    if (result) {
-      setPositions(result);
-      setSelectionChecked(true);
-      setPositionId("");
-      setCompetencies(null);
-      setConfirmed(null);
+    setValidation([]);
+    clearEvaluationFlow();
+    const candidates = await searchAction.execute(criteria);
+    if (candidates) {
+      writeEvaluationFlow({ criteria, candidates, selectedIds: [], positions: [], positionId: null, competencies: null, confirmed: null });
+      router.push(appRoutes.evaluationCandidates);
     }
-  }
-
-  async function verifyPosition() {
-    if (!positionId) return;
-    positionAction.clear();
-    const result = await positionAction.execute({ idPuesto: Number(positionId) });
-    if (result) setCompetencies(result);
-  }
-
-  async function confirm() {
-    if (!positionId || selected.length === 0) return;
-    if (!window.confirm("¿Confirmar la evaluación para los candidatos y el puesto seleccionados?")) return;
-    confirmAction.clear();
-    const result = await confirmAction.execute({ idsCandidatos: selected, idPuesto: Number(positionId) });
-    if (result) setConfirmed(result);
-  }
-
-  function toggleCandidate(id: number) {
-    setSelected((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
-    setPositions([]);
-    setSelectionChecked(false);
-    setPositionId("");
-    setCompetencies(null);
-    setConfirmed(null);
   }
 
   return <>
-    <PageHeader
-      eyebrow="Perfil consultor"
-      title="Evaluar candidatos"
-      description="Buscá y seleccioná candidatos, elegí un puesto y confirmá la generación de sus cuestionarios."
-    />
-
-    <div className="space-y-6">
-      <Panel title="1. Buscar candidatos" description="Ingresá al menos un criterio. Nombre y apellido admiten coincidencias parciales.">
-        <form noValidate onSubmit={search} className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field
-              label="Número de candidato"
-              value={criteria.numeroCandidato}
-              onChange={(event) => { setCriteria({ ...criteria, numeroCandidato: event.target.value }); setCriteriaError([]); }}
-            />
-            <Field
-              label="Apellido"
-              value={criteria.apellido}
-              onChange={(event) => { setCriteria({ ...criteria, apellido: event.target.value }); setCriteriaError([]); }}
-            />
-            <Field
-              label="Nombre"
-              value={criteria.nombre}
-              onChange={(event) => { setCriteria({ ...criteria, nombre: event.target.value }); setCriteriaError([]); }}
-            />
-          </div>
-          <ValidationSummary errors={criteriaError} />
-          <div><Button type="submit" disabled={pending}>Buscar candidatos</Button></div>
-        </form>
-      </Panel>
-
-      {searched && <Panel
-        title="Resultados de la búsqueda"
-        description="Marcá uno o varios candidatos para continuar."
-        actions={<span className="text-sm text-slate-600">Seleccionados: {selected.length}</span>}
-      >
-        <DataTable
-          rows={matches}
-          rowKey={(row) => row.id}
-          emptyTitle="No se encontraron candidatos"
-          emptyDescription="Probá con otros criterios de búsqueda."
-          columns={[
-            {
-              key: "select",
-              header: "Seleccionar",
-              render: (row) => <input
-                type="checkbox"
-                checked={selected.includes(row.id)}
-                onChange={() => toggleCandidate(row.id)}
-                aria-label={"Seleccionar a " + row.nombre + " " + row.apellido}
-              />,
-            },
-            { key: "numero", header: "N.º candidato", render: (row) => row.numeroCandidato },
-            { key: "apellido", header: "Apellido", render: (row) => row.apellido },
-            { key: "nombre", header: "Nombre", render: (row) => row.nombre },
-          ]}
-        />
-        {matches.length > 0 && <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button disabled={selected.length === 0 || pending} onClick={continueSelection}>
-            Validar selección y elegir puesto
-          </Button>
-          {selected.length === 0 && <span className="text-sm text-slate-500">Seleccioná al menos un candidato.</span>}
-        </div>}
-      </Panel>}
-
-      {selectionChecked && positions.length === 0 && <Panel title="2. Elegir puesto">
-        <Notice tone="warning">La selección se validó, pero el backend no encontró puestos activos y evaluables para esos candidatos.</Notice>
-      </Panel>}
-
-      {selectionChecked && positions.length > 0 && <Panel
-        title="2. Elegir puesto"
-        description="El backend solo ofrece puestos activos con condiciones para generar cuestionarios."
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <SelectField
-            className="flex-1"
-            label="Puesto"
-            value={positionId}
-            onChange={(event) => { setPositionId(event.target.value); setCompetencies(null); setConfirmed(null); }}
-          >
-            <option value="">Seleccionar…</option>
-            {positions.map((item) => <option key={item.idPuesto} value={item.idPuesto}>
-              {item.nombrePuesto}{item.nombreEmpresa ? " · " + item.nombreEmpresa : ""}
-            </option>)}
-          </SelectField>
-          <Button disabled={!positionId || pending} onClick={verifyPosition}>Verificar puesto</Button>
+    <PageHeader eyebrow="CU025 · Paso 1 de 5" title="Buscar candidatos para evaluar" description="Ingresá al menos un criterio. Nombre y apellido admiten coincidencias parciales." />
+    <Panel title="Criterios de búsqueda">
+      <form onSubmit={search} className="grid gap-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field label="Número de candidato" value={criteria.numeroCandidato ?? ""} onChange={(event) => setCriteria({ ...criteria, numeroCandidato: event.target.value })} />
+          <Field label="Apellido" value={criteria.apellido ?? ""} onChange={(event) => setCriteria({ ...criteria, apellido: event.target.value })} />
+          <Field label="Nombre" value={criteria.nombre ?? ""} onChange={(event) => setCriteria({ ...criteria, nombre: event.target.value })} />
         </div>
-      </Panel>}
-
-      {competencies !== null && <Panel title="3. Competencias requeridas">
-        {competencies.length > 0
-          ? <DataTable
-              rows={competencies}
-              rowKey={(row) => row.nombreCompetencia}
-              columns={[
-                { key: "competencia", header: "Competencia", render: (row) => row.nombreCompetencia },
-                { key: "ponderacion", header: "Ponderación", render: (row) => row.ponderacion },
-              ]}
-            />
-          : <Notice tone="warning">El backend no devolvió competencias para el puesto seleccionado.</Notice>}
-        {competencies.length > 0 && <div className="mt-4">
-          <Button disabled={pending} onClick={confirm}>Confirmar evaluación</Button>
-        </div>}
-      </Panel>}
-
-      {confirmed !== null && <Panel title="4. Evaluaciones generadas">
-        <Notice tone="success" title="Evaluación confirmada">
-          Guardá las claves de ingreso y compartí cada una con su candidato.
-        </Notice>
-        <DataTable
-          rows={confirmed}
-          rowKey={(row) => row.numeroDocumento + "-" + row.claveIngreso}
-          emptyTitle="No se generaron evaluaciones"
-          columns={[
-            { key: "candidate", header: "Candidato", render: (row) => row.apellido + ", " + row.nombre },
-            { key: "document", header: "Documento", render: (row) => row.tipoDocumento + " " + row.numeroDocumento },
-            { key: "key", header: "Clave de ingreso", render: (row) => <strong className="font-mono">{row.claveIngreso}</strong> },
-          ]}
-        />
-      </Panel>}
-
-      <ErrorMessage error={searchAction.error} />
-      <ErrorMessage error={selectionAction.error} />
-      <ErrorMessage error={positionAction.error} />
-      <ErrorMessage error={confirmAction.error} />
-    </div>
+        <ValidationSummary errors={validation} />
+        <ErrorMessage error={searchAction.error} />
+        <div><Button type="submit" disabled={searchAction.isPending}>{searchAction.isPending ? "Buscando…" : "Buscar candidatos"}</Button></div>
+      </form>
+    </Panel>
   </>;
 }

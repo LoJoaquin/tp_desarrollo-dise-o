@@ -10,6 +10,7 @@ import com.diseno.miApp.RespuestaPreguntaCuestionario.RespuestaPreguntaCuestiona
 import com.diseno.miApp.RespuestaPreguntaCuestionario.RespuestaPreguntaCuestionarioService;
 import com.diseno.miApp.helpers.CalculoPuntajeHelper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ import static com.diseno.miApp.helpers.ValidacionesHelper.validarIdPositivo;
 @Service
 public class CompletarCuestionarioService {
     private final CuestionarioRepository cuestionarioRepository;
+    private final PasswordEncoder passwordEncoder;
     private final ModeloPreguntaRepository preguntaRepository;
     private final ModeloOpcionRepository opcionRepository;
     private final RespuestaPreguntaCuestionarioService respuestaService;
@@ -37,6 +39,7 @@ public class CompletarCuestionarioService {
 
     public CompletarCuestionarioService(
             CuestionarioRepository cuestionarioRepository,
+            PasswordEncoder passwordEncoder,
             ModeloPreguntaRepository preguntaRepository,
             ModeloOpcionRepository opcionRepository,
             RespuestaPreguntaCuestionarioService respuestaService,
@@ -45,6 +48,7 @@ public class CompletarCuestionarioService {
             java.time.Duration plazoCompletar,
             @Value("${cuestionario.maximo-accesos:5}") int maximoAccesos) {
         this.cuestionarioRepository = cuestionarioRepository;
+        this.passwordEncoder = passwordEncoder;
         this.preguntaRepository = preguntaRepository;
         this.opcionRepository = opcionRepository;
         this.respuestaService = respuestaService;
@@ -70,7 +74,8 @@ public class CompletarCuestionarioService {
                 .orElseThrow(() -> errorNoEncontrado(
                         "No tenés un cuestionario activo o en proceso"));
 
-        if (!claveIngreso.equals(cuestionario.getClaveIngreso())) {
+        if (!passwordEncoder.matches(
+                claveIngreso, cuestionario.getClaveIngreso())) {
             throw errorConflicto("La clave de ingreso no es válida");
         }
         if (cuestionario.getModelo() == null) {

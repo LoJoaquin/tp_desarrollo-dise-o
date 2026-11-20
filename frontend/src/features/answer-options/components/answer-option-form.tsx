@@ -64,10 +64,10 @@ export default function AnswerOptionForm({ mode, answerOptionId }: { mode: Mode;
     setValidationErrors([]);
     const errors = validate();
     if (errors.length) { setValidationErrors(errors); return; }
-    if (isUpdate && !answerOptionId) return;
-
     if (isUpdate) {
-      const option = await updateAnswerOption.execute({ id: answerOptionId, body: {
+      const id = answerOptionId;
+      if (!id) return;
+      const option = await updateAnswerOption.execute({ id, body: {
         descripcion: form.descripcion.trim().toLocaleUpperCase("es-AR"),
         detalles: form.detalles.map((detail) => ({ id: detail.id!, ordenVisualizacion: Number(detail.ordenVisualizacion), descripcion: detail.descripcion.trim().toLocaleUpperCase("es-AR") })),
       } }, "La operación ha culminado con éxito.");

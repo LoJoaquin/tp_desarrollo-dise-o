@@ -1,18 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Field, Notice, PageHeader, Panel } from "@/shared/ui";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Field, PageHeader, Panel, ValidationSummary } from "@/shared/ui";
 
-export default function ComparativeReportPage() {
-  const [candidateNumber, setCandidateNumber] = useState("");
-  const [position, setPosition] = useState("");
-  const [attempted, setAttempted] = useState(false);
+export default function ComparativeReportSearchPage() {
+  const router = useRouter();
+  const [nombre, setNombre] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
+
+  function search(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextErrors = !nombre.trim() && !empresa.trim()
+      ? ["Ingresá el nombre del puesto o la empresa para buscar."]
+      : [];
+    setErrors(nextErrors);
+    if (nextErrors.length) return;
+
+    const params = new URLSearchParams();
+    if (nombre.trim()) params.set("nombre", nombre.trim());
+    if (empresa.trim()) params.set("empresa", empresa.trim());
+    router.push(`/reportes/comparativo/puestos/resultados?${params.toString()}`);
+  }
+
   return <>
-    <PageHeader eyebrow="Consultor · CU027" title="Emitir reporte comparativo" description="Preparar la comparación entre el resultado de un candidato y los requisitos del puesto." />
-    <Notice tone="warning" title="La pantalla no puede emitir el reporte todavía">El backend no implementa el CU027. No existe una operación que calcule la comparación ni una respuesta con el contenido del reporte. Los campos solo permiten visualizar el punto de entrada del flujo.</Notice>
-    <Panel title="Datos para la comparación"><form onSubmit={(event) => { event.preventDefault(); setAttempted(true); }} className="grid max-w-2xl gap-4 sm:grid-cols-2"><Field label="Número de candidato" value={candidateNumber} onChange={(event) => setCandidateNumber(event.target.value)} /><Field label="Código o nombre del puesto" value={position} onChange={(event) => setPosition(event.target.value)} /><div className="sm:col-span-2"><Button>Emitir reporte</Button></div></form>
-      {attempted && <Notice tone="error" title="Reporte no generado">Falta implementar en el backend el endpoint que valide la evaluación del candidato para el puesto y devuelva el resultado comparativo. No se guardó ni se generó ningún reporte.</Notice>}
+    <PageHeader eyebrow="Consultor · CU027" title="Emitir reporte comparativo" description="Primero buscá el puesto para el que querés comparar los resultados de un candidato." />
+    <Panel title="Buscar puesto" description="Podés completar el nombre del puesto, la empresa o ambos.">
+      <form noValidate onSubmit={search} className="grid max-w-2xl gap-4 sm:grid-cols-2">
+        <Field label="Nombre del puesto" placeholder="Ej.: Analista de sistemas" value={nombre} onChange={(event) => { setNombre(event.target.value); setErrors([]); }} />
+        <Field label="Empresa" placeholder="Ej.: Empresa Norte" value={empresa} onChange={(event) => { setEmpresa(event.target.value); setErrors([]); }} />
+        <ValidationSummary errors={errors} />
+        <div className="sm:col-span-2"><Button>Buscar puestos</Button></div>
+      </form>
     </Panel>
-    <Panel className="mt-6" title="Área del reporte"><p className="text-sm leading-6 text-slate-600">Cuando esté implementado, aquí se mostrará la información devuelta por el backend. El formato, los campos comparados y las reglas detalladas quedan sujetos al CU027 completo y al contrato que publique el backend.</p></Panel>
   </>;
 }

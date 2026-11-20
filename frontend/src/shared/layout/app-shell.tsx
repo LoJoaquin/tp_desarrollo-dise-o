@@ -35,7 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = isCandidateFlow ? candidateItems : isConsultantFlow ? consultantItems : [{ label: "Inicio", href: "/" }];
 
   return <div className="min-h-screen lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
-    <aside className="border-b border-[var(--color-border)] bg-white px-5 py-5 lg:min-h-screen lg:border-b-0 lg:border-r">
+    <aside className="border-b border-[var(--color-border)] bg-white px-5 py-5 print:hidden lg:min-h-screen lg:border-b-0 lg:border-r">
       <Link href="/" className="flex items-center gap-3">
         <span className="grid size-10 place-items-center rounded-xl bg-[var(--color-brand)] text-lg font-bold text-white">M</span>
         <span><strong className="block text-lg">miApp</strong><small className="text-slate-500">{isCandidateFlow ? "Perfil candidato" : isConsultantFlow ? "Perfil consultor" : "Seleccionar perfil"}</small></span>
@@ -59,6 +59,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </ul>
       </nav>
     </aside>
-    <main className="min-w-0 px-4 py-6 sm:px-7 lg:px-10 lg:py-9">{children}</main>
+    <main className="min-w-0 px-4 py-6 print:px-0 print:py-0 sm:px-7 lg:px-10 lg:py-9">{children}</main>
   </div>;
 }

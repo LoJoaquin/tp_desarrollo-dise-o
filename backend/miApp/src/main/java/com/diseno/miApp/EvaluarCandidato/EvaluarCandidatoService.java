@@ -4,6 +4,7 @@ import com.diseno.miApp.Candidato.Candidato;
 import com.diseno.miApp.Candidato.CandidatoService;
 import com.diseno.miApp.CaracteristicasPuesto.CaracteristicasPuesto;
 import com.diseno.miApp.Cuestionario.Cuestionario;
+import com.diseno.miApp.Cuestionario.CuestionarioCreado;
 import com.diseno.miApp.Cuestionario.CuestionarioServices;
 import com.diseno.miApp.ModeloCuestionario.ModeloCuestionario;
 import com.diseno.miApp.ModeloCuestionario.ModeloCuestionarioRepository;
@@ -142,17 +143,20 @@ public class EvaluarCandidatoService {
         ModeloCuestionario modelo = modeloCuestionarioService
                 .construirYValidar(puesto);
         modelo = modeloCuestionarioRepository.save(modelo);
-        List<Cuestionario> cuestionarios =
+        List<CuestionarioCreado> cuestionarios =
                 cuestionarioServices.crearCuestionarios(
                         candidatos, puesto, modelo);
 
         return cuestionarios.stream()
-                .map(cuestionario -> new EvaluarCandidatoResponse(
-                        cuestionario.getCandidato().getApellido(),
-                        cuestionario.getCandidato().getNombre(),
-                        cuestionario.getCandidato().getTipoDocumento(),
-                        cuestionario.getCandidato().getNumeroDocumento(),
-                        cuestionario.getClaveIngreso()))
+                .map(creado -> {
+                    Candidato candidato = creado.cuestionario().getCandidato();
+                    return new EvaluarCandidatoResponse(
+                            candidato.getApellido(),
+                            candidato.getNombre(),
+                            candidato.getTipoDocumento(),
+                            candidato.getNumeroDocumento(),
+                            creado.claveIngreso());
+                })
                 .toList();
     }
 

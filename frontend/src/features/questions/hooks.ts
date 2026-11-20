@@ -2,7 +2,7 @@
 
 import { useServiceAction } from "@/shared/hooks/use-service-action";
 import * as service from "./service";
-import type { CreateQuestionRequest, SearchQuestionsRequest, UpdateQuestionRequest } from "./types";
+import type { ConfirmGeneratedQuestionRequest, CreateQuestionRequest, GenerateQuestionWithAiRequest, SearchQuestionsRequest, UpdateQuestionRequest } from "./types";
 
 export const useQuestions = () =>
   useServiceAction<void, Awaited<ReturnType<typeof service.listQuestions>>>(
@@ -34,3 +34,13 @@ export const useDeleteQuestion = () =>
     await service.deleteQuestion(id);
     return true;
   });
+
+export const useGenerateQuestionWithAi = () =>
+  useServiceAction((body: GenerateQuestionWithAiRequest) =>
+    service.generateQuestionWithAi(body),
+  );
+
+export const useConfirmGeneratedQuestion = () =>
+  useServiceAction((body: ConfirmGeneratedQuestionRequest) =>
+    service.confirmGeneratedQuestion(body),
+  );
