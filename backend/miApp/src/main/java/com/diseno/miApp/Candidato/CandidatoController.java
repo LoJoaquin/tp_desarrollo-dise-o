@@ -2,7 +2,9 @@ package com.diseno.miApp.Candidato;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 
 import java.util.Arrays;
@@ -14,9 +16,20 @@ import com.diseno.miApp.Nacionalidad.Nacionalidad;
 public class CandidatoController {
 
     private final CandidatoService candidatoService;
+    private final ImportarCandidatosService importarCandidatosService;
 
-    public CandidatoController(CandidatoService candidatoService) {
+    public CandidatoController(
+            CandidatoService candidatoService,
+            ImportarCandidatosService importarCandidatosService) {
         this.candidatoService = candidatoService;
+        this.importarCandidatosService = importarCandidatosService;
+    }
+
+    // CU006 — Importar candidatos desde un archivo CSV.
+    @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ImportacionCandidatosResponse> importarCandidatos(
+            @RequestParam("archivo") MultipartFile archivo) {
+        return ResponseEntity.ok(importarCandidatosService.importar(archivo));
     }
 
     @GetMapping("/nacionalidades")

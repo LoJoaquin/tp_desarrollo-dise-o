@@ -5,19 +5,21 @@ const tasks = [
   { title: "Gestionar puestos", description: "Buscar puestos y dar de alta, modificar o dar de baja.", href: "/puestos", state: "Conectado" },
   { title: "Gestionar candidatos", description: "Buscar, crear, modificar y dar de baja candidatos.", href: "/candidatos", state: "Conectado" },
   { title: "Evaluar candidatos", description: "Seleccionar candidatos y puestos para generar cuestionarios de evaluación.", href: "/evaluaciones/nueva", state: "Conectado" },
-  { title: "Emitir reporte comparativo", description: "Preparar la consulta comparativa del candidato y el puesto.", href: "/reportes/comparativo", state: "Falta endpoint" },
-  { title: "Exportar resultados", description: "Elegir puesto y filtros para preparar el archivo de resultados.", href: "/exportar-resultados", state: "Falta endpoint" },
+  { title: "Importar candidatos", description: "Importar candidatos desde el CSV del sistema de candidatos y CV.", href: "/importar-candidatos", state: "Conectado" },
+  { title: "Emitir reporte comparativo", description: "Comparar lo requerido por la función con lo obtenido por un candidato.", href: "/reportes/comparativo", state: "Conectado" },
+  { title: "Exportar resultados", description: "Elegir la función y generar el CSV con los resultados de los candidatos evaluados.", href: "/exportar-resultados", state: "Conectado" },
   { title: "Emitir orden de mérito", description: "Consultar evaluaciones por puesto y abrir su orden de mérito.", href: "/reportes/puestos", state: "Conectado" },
   { title: "Gestionar preguntas", description: "Buscar preguntas y dar de alta, modificar o dar de baja.", href: "/administracion/preguntas", state: "Conectado" },
   { title: "Gestionar opciones de respuesta", description: "Crear, modificar y eliminar opciones y sus detalles de respuesta.", href: "/administracion/opciones-respuesta", state: "Conectado" },
   { title: "Gestionar factores", description: "Administrar factores asociados a competencias.", href: "/administracion/factores", state: "Conectado" },
   { title: "Gestionar competencias", description: "Administrar el catálogo de competencias.", href: "/administracion/competencias", state: "Conectado" },
   { title: "Gestionar empresas", description: "Buscar, crear y modificar empresas. La baja no tiene endpoint.", href: "/administracion/empresas", state: "Parcial" },
+  { title: "Finalizar cuestionarios", description: "Ver el registro del proceso periódico de vencimientos y ejecutarlo manualmente.", href: "/administracion/cierre-cuestionarios", state: "Conectado" },
 ];
 
 export default function ConsultantHomePage() {
   return <>
-    <PageHeader eyebrow="Perfil consultor · CU001" title="Casos de uso" description="Elegí qué tarea querés realizar. La autenticación se omite para este prototipo; cada pantalla informa el estado real de su integración." />
+    <PageHeader eyebrow="Perfil consultor · CU001" title="Casos de uso" description="Elegí qué tarea querés realizar. Cada pantalla informa el estado real de su integración." />
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{tasks.map((task) => <Link key={task.href} href={task.href} className="rounded-xl border border-[var(--color-border)] bg-white p-5 shadow-sm transition hover:border-blue-300 hover:shadow-md">
       <div className="mb-3 flex items-start justify-between gap-3"><h2 className="font-semibold">{task.title}</h2><StatusBadge tone={task.state === "Conectado" ? "success" : task.state === "Parcial" ? "warning" : "danger"}>{task.state}</StatusBadge></div>
       <p className="text-sm leading-6 text-slate-600">{task.description}</p><span className="mt-4 inline-block text-sm font-semibold text-[var(--color-brand)]">Abrir caso de uso →</span>

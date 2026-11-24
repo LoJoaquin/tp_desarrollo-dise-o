@@ -36,6 +36,16 @@ public class JwtService {
                 .compact();
     }
 
+    public String generarTokenConsultor(String usuario) {
+        return Jwts.builder()
+                .subject(usuario)
+                .claim(CLAIM_PERFIL, "CONSULTOR")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + DURACION_TOKEN_MS))
+                .signWith(getKey())
+                .compact();
+    }
+
     public Claims validarToken(String token) {
         return Jwts.parser()
                 .verifyWith(getKey())

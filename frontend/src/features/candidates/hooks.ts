@@ -28,3 +28,5 @@ export const useDeleteCandidate = () =>
     await service.deleteCandidate(id);
     return true;
   });
+export const useImportCandidates = () =>
+  useServiceAction((file: File) => service.importCandidates(file));

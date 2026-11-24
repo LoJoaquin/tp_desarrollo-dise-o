@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader, Panel } from "@/shared/ui";
 
 const roles = [
-  { title: "Ingresar como consultor", description: "Administrar puestos, candidatos, preguntas, competencias, factores, empresas y reportes.", href: "/consultor", action: "Continuar como consultor" },
+  { title: "Ingresar como consultor", description: "Administrar puestos, candidatos, preguntas, competencias, factores, empresas y reportes.", href: "/login/consultor", action: "Ingresar como consultor" },
   { title: "Realizar cuestionario", description: "Iniciar sesión como candidato, ingresar la clave recibida y responder el cuestionario asignado.", href: "/login/candidato", action: "Ingresar como candidato" },
 ];
 

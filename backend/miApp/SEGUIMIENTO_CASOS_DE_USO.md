@@ -12,12 +12,12 @@ Documento de trabajo para comparar la implementación del backend con el enuncia
 
 | CU | Caso de uso | Estado | Estado observado en el código |
 |---|---|---|---|
-| 001 | Autenticar usuario | Pendiente | `AutenticarService` devuelve `null` para candidato y consultor. `SeguridadConfig` permite todas las solicitudes; faltan autenticación, autorización por perfil y validación LDAP del consultor. |
-| 006 | Importar candidatos | Pendiente | No se encontró el flujo de importación CSV. |
-| 007 | Exportar resultados | Pendiente | No se encontró el flujo de exportación CSV. |
+| 001 | Autenticar usuario | Revisar (24/11) | Candidato y consultor autentican y reciben un JWT (`ROLE_CANDIDATO` / `ROLE_CONSULTOR`). El consultor se valida con un bind al LDAP (`LDAP_URL`, `LDAP_DN_PATRON`) o, sin LDAP, contra `CONSULTOR_USUARIO`/`CONSULTOR_CONTRASENIA`. Usuario en mayúsculas, máx. 15/20 caracteres. Falta decidir si los endpoints del consultor exigen el token (hoy `anyRequest().permitAll()`). |
+| 006 | Importar candidatos | Revisar (24/11) | `POST /candidatos/importar` (multipart, campo `archivo`). CSV con `;` y encabezado; clave = nro candidato; devuelve creados/actualizados/eliminados. Es todo o nada: si una fila es inválida no se guarda nada. Los candidatos importados no tienen contraseña. |
+| 007 | Exportar resultados | Revisar (24/11) | `POST /Reporte/evaluados/puestos/buscar`, `GET /Reporte/puestos/{id}/evaluados` y `GET /Reporte/puestos/{id}/exportar` (CSV con nombre `aaaa-mm-dd-hh-mm-Empresa-Función.csv`). Usa el modelo congelado del cuestionario. |
 | 026 | Completar cuestionario | Parcial | Hay lógica para buscar el cuestionario, guardar respuestas parciales, finalizar bloques y calcular el resultado. Faltan validaciones de acceso/plazos y selección/asignación de preguntas; esos métodos todavía no están implementados. No se encontró un controlador para este flujo. |
-| 027 | Emitir reporte comparativo | Pendiente | No se encontró una implementación que compare los resultados del candidato con los requisitos del puesto y entregue el reporte de este CU. |
-| 032 | Finalizar cuestionarios | Pendiente | No se encontró el proceso periódico de vencimientos, cambios de estado y registro de ejecución. |
+| 027 | Emitir reporte comparativo | Revisar (24/11) | `GET /Reporte/puestos/{idPuesto}/cuestionarios/{idCuestionario}/comparativo`: requerido (ponderación mínima congelada) vs. obtenido por competencia. El frontend muestra grilla, gráfico e imprime. |
+| 032 | Finalizar cuestionarios | Revisar (24/11) | `@Scheduled` cada 5 min (`CUESTIONARIO_FINALIZACION_CRON`): EN_PROCESO vencidos → INCOMPLETO, ACTIVO vencidos → SIN_CONTESTAR, con fecha de cambio de estado. Registro de ejecución (inicio/finalización/error) en `ejecucion_finalizacion_cuestionarios`; `POST /procesos/finalizar-cuestionarios/ejecutar` y `GET .../ejecuciones`. |
 | 033 | Generar pregunta con IA | Pendiente | No se encontró la integración con IA ni el flujo de generación y carga. |
 
 ## Casos con implementación base para revisar

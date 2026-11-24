@@ -21,3 +21,5 @@ export type CreateCandidateRequest = Omit<Candidate, "id" | "estaActivo" | "upda
 export type UpdateCandidateRequest = Omit<CreateCandidateRequest, "createdAt" | "contrasenia"> & { contrasenia?: string };
 export type CandidateCreatedResponse = Omit<Candidate, "estaActivo" | "createdAt" | "updatedAt">;
 export type NationalityOption = { codigo: Nacionalidad; nombre: string };
+// CU006: estadística devuelta por la importación del CSV.
+export type CandidateImportResult = { candidatosCreados: number; candidatosActualizados: number; candidatosEliminados: number; filasProcesadas: number };

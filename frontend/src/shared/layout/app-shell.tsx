@@ -10,6 +10,7 @@ const consultantItems: NavItem[] = [
   { label: "Inicio consultor", href: "/consultor" },
   { label: "Gestionar puestos", href: "/puestos" },
   { label: "Gestionar candidatos", href: "/candidatos" },
+  { label: "Importar candidatos", href: "/importar-candidatos" },
   { label: "Evaluar candidatos", href: "/evaluaciones/nueva" },
   { label: "Reporte comparativo", href: "/reportes/comparativo" },
   { label: "Exportar resultados", href: "/exportar-resultados" },
@@ -19,6 +20,7 @@ const consultantItems: NavItem[] = [
   { label: "Gestionar factores", href: "/administracion/factores" },
   { label: "Gestionar competencias", href: "/administracion/competencias" },
   { label: "Gestionar empresas", href: "/administracion/empresas" },
+  { label: "Finalizar cuestionarios", href: "/administracion/cierre-cuestionarios" },
   { label: "Cerrar sesión", href: "/", logout: true },
 ];
 

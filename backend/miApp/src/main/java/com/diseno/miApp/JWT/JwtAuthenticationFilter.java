@@ -32,25 +32,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authorization != null && authorization.startsWith("Bearer ")) {
-            autenticarSiEsCandidato(authorization.substring(7));
+            autenticar(authorization.substring(7));
         }
         filterChain.doFilter(request, response);
     }
 
-    private void autenticarSiEsCandidato(String token) {
+    private void autenticar(String token) {
         try {
             Claims claims = jwtService.validarToken(token);
             String perfil = claims.get("perfil", String.class);
-            String idCandidato = claims.getSubject();
-            if (!"CANDIDATO".equals(perfil) || idCandidato == null
-                    || idCandidato.isBlank()) {
+            String sujeto = claims.getSubject();
+            if (!("CANDIDATO".equals(perfil) || "CONSULTOR".equals(perfil))
+                    || sujeto == null || sujeto.isBlank()) {
                 return;
             }
 
             var autenticacion = new UsernamePasswordAuthenticationToken(
-                    idCandidato,
+                    sujeto,
                     null,
-                    List.of(new SimpleGrantedAuthority("ROLE_CANDIDATO"))
+                    List.of(new SimpleGrantedAuthority("ROLE_" + perfil))
             );
             SecurityContextHolder.getContext().setAuthentication(autenticacion);
         } catch (JwtException | IllegalArgumentException ignored) {

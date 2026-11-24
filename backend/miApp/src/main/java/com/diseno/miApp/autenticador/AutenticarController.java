@@ -17,7 +17,7 @@ public class AutenticarController {
       return autenticarService.autenticarCandidato(request);
   }
   @PostMapping("/consultor")
-    public AutenticarResponse autenticarConsultor(
+    public AutenticarConsultorResponse autenticarConsultor(
             @RequestBody AutenticarConsultorRequest request
   ){
         return autenticarService.autenticarConsultor(request);

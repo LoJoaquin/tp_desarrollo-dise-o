@@ -31,4 +31,6 @@ public interface CandidatoRepository
     Optional<Candidato> findFirstByTipoDocumentoAndNumeroDocumentoAndEstaActivoTrue(
             TipoDocumento tipoDocumento,
             String numeroDocumento);
+
+    Optional<Candidato> findByNumeroCandidato(String numeroCandidato);
 }

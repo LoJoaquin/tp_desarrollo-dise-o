@@ -1,26 +1,61 @@
-import Link from "next/link";
-import { Notice, PageHeader, Panel } from "@/shared/ui";
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEvaluatedPositions } from "@/features/reports/hooks";
+import type { EvaluatedPosition } from "@/features/reports/types";
 import { appRoutes } from "@/shared/navigation/routes";
+import { Button, DataTable, ErrorMessage, LoadingState, PageHeader, Panel } from "@/shared/ui";
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+export default function ResultsExportPositionsPage() {
+  return <Suspense fallback={<LoadingState label="Cargando…" />}><ResultsExportPositions /></Suspense>;
+}
 
-export default async function ResultsExportPositionsPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = await searchParams;
-  const filters = [
-    ["Puesto", params.nombre],
-    ["Empresa", params.empresa],
-    ["Desde", params.desde],
-    ["Hasta", params.hasta],
-  ].filter((item): item is [string, string] => typeof item[1] === "string" && item[1].length > 0);
+function ResultsExportPositions() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nombre = searchParams.get("nombre") ?? "";
+  const empresa = searchParams.get("empresa") ?? "";
+  const desde = searchParams.get("desde") ?? "";
+  const hasta = searchParams.get("hasta") ?? "";
+  const query = searchParams.toString();
+  const [rows, setRows] = useState<EvaluatedPosition[]>([]);
+  const [loading, setLoading] = useState(true);
+  const search = useEvaluatedPositions();
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    search.execute({ nombre, empresa, desde, hasta }).then((result) => {
+      if (!mounted) return;
+      setRows(result ?? []);
+      setLoading(false);
+    });
+    return () => { mounted = false; };
+  }, [nombre, empresa, desde, hasta, search.execute]);
+
+  const filters = [["Función o puesto", nombre], ["Empresa", empresa], ["Desde", desde], ["Hasta", hasta]].filter(([, value]) => value);
+
   return <>
-    <PageHeader eyebrow="Consultor · CU007 · Paso 2 de 3" title="Puestos encontrados" description="Elegí un puesto para consultar sus candidatos con cuestionarios completos." />
-    <Panel title="Filtros aplicados">
-      {filters.length ? <ul className="grid gap-2 sm:grid-cols-2">{filters.map(([label, value]) => <li key={label}><strong>{label}:</strong> {value}</li>)}</ul> : <p>No se recibieron filtros de búsqueda.</p>}
-    </Panel>
-    <Panel className="mt-5" title="Resultados de puestos">
-      <Notice tone="error" title="Falta conectar la búsqueda al backend">No hay un endpoint que busque puestos por fecha de finalización de cuestionarios completos y devuelva los resultados requeridos por CU007. La búsqueda general de puestos y la de orden de mérito no reemplazan este contrato, así que no se muestran resultados inventados.</Notice>
-      <p className="text-sm text-slate-600">Cuando exista ese endpoint, cada fila permitirá abrir la lista de candidatos del puesto en una URL propia.</p>
-      <Link className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-semibold" href={appRoutes.resultsExport}>Volver a los filtros</Link>
+    <PageHeader eyebrow="Consultor · CU007 · Paso 2 de 3" title="Funciones encontradas" description="Elegí una función o puesto para ver los candidatos evaluados y exportar sus resultados." actions={<Button variant="secondary" onClick={() => router.push(appRoutes.resultsExport)}>Cambiar filtros</Button>} />
+    {filters.length > 0 && <Panel title="Filtros aplicados">
+      <ul className="grid gap-2 sm:grid-cols-2">{filters.map(([label, value]) => <li key={label}><strong>{label}:</strong> {value}</li>)}</ul>
+    </Panel>}
+    <Panel className="mt-5" title="Resultados" description="Solo se listan funciones con cuestionarios en estado Completo.">
+      {loading ? <LoadingState label="Buscando funciones…" /> : <DataTable
+        rows={rows}
+        rowKey={(row) => row.idPuesto}
+        emptyTitle="No hay funciones con candidatos evaluados"
+        emptyDescription="Probá con otros filtros o con otro rango de fechas."
+        columns={[
+          { key: "codigo", header: "Código", render: (row) => row.codigoPuesto },
+          { key: "puesto", header: "Función o puesto", render: (row) => row.nombrePuesto },
+          { key: "empresa", header: "Empresa", render: (row) => row.empresa ?? "—" },
+          { key: "evaluados", header: "Evaluados", render: (row) => row.candidatosEvaluados },
+          { key: "select", header: "Acción", render: (row) => <Button onClick={() => router.push(`${appRoutes.resultsExportCandidates(row.idPuesto)}${query ? `?${query}` : ""}`)}>Elegir</Button> },
+        ]}
+      />}
+      <ErrorMessage error={search.error} />
     </Panel>
   </>;
 }

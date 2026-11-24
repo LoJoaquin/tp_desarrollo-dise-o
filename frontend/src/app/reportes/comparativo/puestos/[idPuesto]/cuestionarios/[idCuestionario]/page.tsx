@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { usePosition } from "@/features/positions/hooks";
-import type { Position } from "@/features/positions/types";
-import { comparativeCandidatesExample, comparativeReportExample } from "@/features/reports/mock-data";
+import { useComparativeReport } from "@/features/reports/hooks";
 import type { ComparativeReport } from "@/features/reports/types";
 import { CompetencyRadarChart } from "@/features/reports/components/competency-radar-chart";
-import { Button, ErrorMessage, Notice, PageHeader, Panel } from "@/shared/ui";
+import { Button, ErrorMessage, LoadingState, PageHeader, Panel, formatDate } from "@/shared/ui";
 
 function formatScore(value: number) {
   return value.toFixed(2).replace(".", ",");
@@ -19,59 +17,57 @@ export default function ComparativeReportResultPage() {
   const searchParams = useSearchParams();
   const idPuesto = Number(params.idPuesto);
   const idCuestionario = Number(params.idCuestionario);
-  const [position, setPosition] = useState<Position | null>(null);
-  const positionQuery = usePosition();
-  const candidate = comparativeCandidatesExample.find((row) => row.idCuestionario === idCuestionario);
+  const [report, setReport] = useState<ComparativeReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const reportQuery = useComparativeReport();
   const query = searchParams.toString();
   const querySuffix = query ? `?${query}` : "";
 
   useEffect(() => {
     let mounted = true;
-    if (!Number.isInteger(idPuesto) || idPuesto <= 0) return;
-    positionQuery.execute(idPuesto).then((result) => { if (mounted && result) setPosition(result); });
+    if (!Number.isInteger(idPuesto) || idPuesto <= 0 || !Number.isInteger(idCuestionario) || idCuestionario <= 0) {
+      setLoading(false);
+      return;
+    }
+    reportQuery.execute({ positionId: idPuesto, questionnaireId: idCuestionario }).then((result) => {
+      if (!mounted) return;
+      setReport(result);
+      setLoading(false);
+    });
     return () => { mounted = false; };
-  }, [idPuesto, positionQuery.execute]);
-
-  const report: ComparativeReport = useMemo(() => ({
-    ...comparativeReportExample,
-    idPuesto,
-    codigoPuesto: position?.codigo ?? comparativeReportExample.codigoPuesto,
-    nombrePuesto: position?.nombre ?? comparativeReportExample.nombrePuesto,
-    empresa: position?.empresaNombre ?? comparativeReportExample.empresa,
-    candidato: candidate ?? comparativeReportExample.candidato,
-  }), [candidate, idPuesto, position]);
-
-  const totalRequerido = report.competencias.reduce((total, row) => total + row.valorRequerido, 0);
-  const totalObtenido = report.competencias.reduce((total, row) => total + row.valorObtenido, 0);
-  const diferenciaTotal = totalObtenido - totalRequerido;
+  }, [idPuesto, idCuestionario, reportQuery.execute]);
 
   function returnToCandidates() {
     router.push(`/reportes/comparativo/puestos/${idPuesto}/candidatos${querySuffix}`);
   }
 
-  if (!candidate) {
+  if (loading) return <LoadingState label="Generando reporte comparativo…" />;
+
+  if (!report) {
     return <>
-      <PageHeader eyebrow="CU027 · Reporte comparativo" title="No se encontró el ejemplo seleccionado" />
-      <Notice tone="error" title="La evaluación no está disponible">El ID de cuestionario no corresponde a uno de los datos de ejemplo de esta pantalla.</Notice>
+      <PageHeader eyebrow="CU027 · Reporte comparativo" title="No se pudo generar el reporte" />
+      <ErrorMessage error={reportQuery.error} />
       <Button variant="secondary" onClick={returnToCandidates}>Volver a candidatos</Button>
     </>;
   }
 
+  const totalRequerido = report.competencias.reduce((total, row) => total + row.valorRequerido, 0);
+  const totalObtenido = report.competencias.reduce((total, row) => total + row.valorObtenido, 0);
+  const diferenciaTotal = totalObtenido - totalRequerido;
+
   return <>
     <div className="print:hidden">
-      <PageHeader eyebrow="CU027 · Paso 3 de 3" title="Reporte comparativo" description="Comparación entre los valores requeridos para el puesto y los obtenidos por el candidato." actions={<div className="flex gap-2"><Button variant="secondary" onClick={returnToCandidates}>Cancelar</Button><Button onClick={() => window.print()}>Imprimir</Button></div>} />
-      <Notice tone="warning" title="Reporte de ejemplo; falta conectar el backend">La tabla y el gráfico siguen el formato solicitado, pero estos datos son ficticios. El backend todavía no entrega la comparación por competencia.</Notice>
+      <PageHeader eyebrow="CU027 · Paso 3 de 3" title="Reporte comparativo" description="Comparación entre los valores requeridos para la función y los obtenidos por el candidato en cada competencia." actions={<div className="flex gap-2"><Button variant="secondary" onClick={returnToCandidates}>Cancelar</Button><Button onClick={() => window.print()}>Imprimir</Button></div>} />
     </div>
 
     <Panel className="mb-6 rounded-2xl border-slate-100 shadow-sm">
       <dl className="grid gap-x-8 sm:grid-cols-2">
-        <div className="flex flex-wrap gap-x-3 border-b border-slate-100 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Puesto:</dt><dd className="text-sm font-bold uppercase text-slate-900">{report.nombrePuesto}</dd></div>
-        <div className="flex flex-wrap gap-x-3 border-b border-slate-100 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Empresa:</dt><dd className="text-sm font-bold uppercase text-slate-900">{report.empresa}</dd></div>
+        <div className="flex flex-wrap gap-x-3 border-b border-slate-100 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Puesto:</dt><dd className="text-sm font-bold uppercase text-slate-900">{report.nombrePuesto} ({report.codigoPuesto})</dd></div>
+        <div className="flex flex-wrap gap-x-3 border-b border-slate-100 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Empresa:</dt><dd className="text-sm font-bold uppercase text-slate-900">{report.empresa ?? "—"}</dd></div>
         <div className="flex flex-wrap gap-x-3 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">Candidato:</dt><dd className="text-sm font-bold uppercase text-slate-900">{report.candidato.apellido}, {report.candidato.nombre}</dd></div>
-        <div className="flex flex-wrap gap-x-3 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">{report.candidato.tipoDocumento}:</dt><dd className="text-sm font-bold text-slate-900">{report.candidato.numeroDocumento}</dd></div>
+        <div className="flex flex-wrap gap-x-3 py-4"><dt className="text-xs font-bold uppercase tracking-wide text-slate-400">{report.candidato.tipoDocumento ?? "Documento"}:</dt><dd className="text-sm font-bold text-slate-900">{report.candidato.numeroDocumento ?? "—"}</dd></div>
       </dl>
-      <div className="grid gap-x-8 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-2"><p>Candidato N.º: <strong className="text-slate-700">{report.candidato.numeroCandidato}</strong></p><p>Finalización: <strong className="text-slate-700">{report.candidato.fechaFinalizacion.slice(0, 10).split("-").reverse().join("/")}</strong></p></div>
-      <ErrorMessage error={positionQuery.error} />
+      <div className="grid gap-x-8 border-t border-slate-100 pt-3 text-xs text-slate-500 sm:grid-cols-2"><p>Candidato N.º: <strong className="text-slate-700">{report.candidato.numeroCandidato ?? "—"}</strong></p><p>Finalización: <strong className="text-slate-700">{formatDate(report.candidato.fechaFinalizacion)}</strong></p></div>
     </Panel>
 
     <div className="grid items-stretch gap-6 lg:grid-cols-2">
